@@ -58,12 +58,12 @@ contract UniswapDummyContract {
         require(tusdAmount > 0, "Send TUSD to receive ETH");
 
         uint256 ethAmount = tusdAmount / price_eth_in_usdc;
-        uint256 finalEthAmount = ethAmount + (ethAmount * premium_percent / 10000);
+        uint256 finalEthAmount = ethAmount ;
 
         require(address(this).balance > finalEthAmount, "Not enough ETH in contract");
     
         token.transferFrom(msg.sender, address(this), tusdAmount);
-        receivingAddress.transferFrom(address(this), finalEthAmount);
+        receivingAddress.transfer(finalEthAmount);
 }
 
 
