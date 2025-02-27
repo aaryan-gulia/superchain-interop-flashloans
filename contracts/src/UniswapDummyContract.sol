@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TestUSDToken is ERC20 {
     constructor() ERC20("TestUSDToken", "TUSD") {
-        _mint(msg.sender, 1000000 * 10 ** decimals()); // Mint 1,000,000 TUSD to deployer
+        //_mint(msg.sender, 1000000 * 10 ** decimals()); // Mint 1,000,000 TUSD to deployer
     }
 
     function mint(address to, uint256 amount) external {
@@ -54,13 +54,17 @@ contract UniswapDummyContract {
         token.transfer(msg.sender, tokenAmount);
     }
 
-    function buyEth (address payable recievingAddress) public payable {
-        //require(msg.value > 0, "Send TUSD to receive tokens");
-        
-        uint256 tokenAmount = msg.value / price_eth_in_usdc;
-        uint256 finalTokenAmount = tokenAmount + tokenAmount * 300 / 10000;
-        
-        recievingAddress.transfer(finalTokenAmount);
-    }
+    function buyEth(address payable receivingAddress, uint256 tusdAmount) public {
+        require(tusdAmount > 0, "Send TUSD to receive ETH");
+
+        uint256 ethAmount = tusdAmount / price_eth_in_usdc;
+        uint256 finalEthAmount = ethAmount + (ethAmount * premium_percent / 10000);
+
+        require(address(this).balance > finalEthAmount, "Not enough ETH in contract");
+    
+        token.transferFrom(msg.sender, address(this), tusdAmount);
+        receivingAddress.transferFrom(address(this), finalEthAmount);
+}
+
 
 }
