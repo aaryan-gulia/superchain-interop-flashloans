@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {Test, console} from "forge-std/Test.sol";
 import {TestUSDToken, UniswapDummyContract} from "./UniswapDummyContract.sol";
 
 contract FlashLoanHandler {
@@ -12,24 +13,24 @@ contract FlashLoanHandler {
     constructor(address _uniswapDummyContractAddress) {
         uniswapDummyContractAddress = _uniswapDummyContractAddress;
         uniswapDummyContract = UniswapDummyContract(uniswapDummyContractAddress);
-        token = uniswapDummyContract.token;
+        token = uniswapDummyContract.getToken();
     }
 
-    function executeArbitrage() {
-        uint256 ethAmount = address(this).balance;
-        require(ethAmount > 0);
+    function executeArbitrage(uint256 ethAmount) private {
+        require(ethAmount <= address(this).balance, "ETH Amount > Balance, Can't run arbitrage");
         uniswapDummyContract.sellEth{value: ethAmount}();
     
-        uint256 tusdBalance = token.balanceOf(address(this));
-        require(tusdBalance > 0, "TUSD Balance is zero after selling ETH");
+        uint256 tokenBalance = token.balanceOf(address(this));
+        require(tokenBalance > 0, "TOKEN Balance is zero after selling ETH");
 
-        tusd.approve(address(uniswapDummyContract), tusdBalance);
-        uniswapDummyContract.buyEth(payable(user), tusdBalance);
+        console.log("token balance: ", tokenBalance);
+        token.approve(uniswapDummyContractAddress, tokenBalance);
+        uniswapDummyContract.buyEth(payable(address(this)), tokenBalance);
     }
 
-    function recieveEth() public {
-        if(uniswapDummyContract.premium_percent > 0) {
-            executeArbitrage();
-        }
+    function recieveEthForArbitrage() public payable {
+        executeArbitrage(msg.value);
     }
+
+    receive() external payable{}
 }

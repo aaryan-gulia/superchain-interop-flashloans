@@ -64,5 +64,8 @@ contract UniswapDummyContract {
         receivingAddress.transfer(finalEthAmount);
     }
 
+    function getToken() public view returns  (TestUSDToken){
+        return token;
+    }
 
 }
