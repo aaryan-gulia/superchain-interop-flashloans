@@ -20,13 +20,11 @@ contract UniswapDummyContract {
     TestUSDToken public token;
     uint256 public minAmount = 0;
 
-    address tokenETH = 0x3563941B27a78EF8CCa9eF46dC6bCECcdADFBd74;
-
     // TODO: get price of eth in USDC from chainlink
-    uint256 price_eth_in_usdc = 2500;
+    uint256 public price_eth_in_usdc = 2500;
 
     // TODO: expected premium to identify
-    uint256 premium_percent = 300; //3 percent
+    uint256 public premium_percent = 300; //3 percent
 
     // function fund () {
 
