@@ -17,14 +17,13 @@ contract TestUSDToken is ERC20 {
 
 contract UniswapDummyContract {
 
-    TestUSDToken token;
+    TestUSDToken public token;
     uint256 public minAmount = 0;
 
     address tokenETH = 0x3563941B27a78EF8CCa9eF46dC6bCECcdADFBd74;
-    address tokenUSD = 0x3563941B27a78EF8CCa9eF46dC6bCECcdADFBd74;
 
     // TODO: get price of eth in USDC from chainlink
-    uint256 price_eth_in_usdc = 250000000000;
+    uint256 price_eth_in_usdc = 2500;
 
     // TODO: expected premium to identify
     uint256 premium_percent = 300; //3 percent
@@ -32,6 +31,9 @@ contract UniswapDummyContract {
     // function fund () {
 
     // }
+    constructor(TestUSDToken _token) {
+        token = _token;
+    }
     
 
     function getEthPrice (uint256 amountToken0) public view returns (uint256) {
@@ -52,13 +54,13 @@ contract UniswapDummyContract {
         token.transfer(msg.sender, tokenAmount);
     }
 
-    function buyEth () public payable {
-        require(msg.value > 0, "Send ETH to receive tokens");
+    function buyEth (address payable recievingAddress) public payable {
+        //require(msg.value > 0, "Send TUSD to receive tokens");
         
         uint256 tokenAmount = msg.value / price_eth_in_usdc;
         uint256 finalTokenAmount = tokenAmount + tokenAmount * 300 / 10000;
         
-        token.transfer(msg.sender, finalTokenAmount);
+        recievingAddress.transfer(finalTokenAmount);
     }
 
 }
