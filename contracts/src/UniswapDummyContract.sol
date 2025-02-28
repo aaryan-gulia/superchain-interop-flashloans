@@ -31,7 +31,7 @@ contract UniswapDummyContract {
     // }
     constructor(TestUSDToken _token) {
         token = _token;
-        token.mint(address(this), 100_000_000 ether);
+        token.mint(address(this), 100_000_000_000 ether);
     }
     
 

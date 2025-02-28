@@ -10,6 +10,8 @@ import {CrossDomainMessageLib} from "@interop-lib/libraries/CrossDomainMessageLi
 
 contract FlashLoanHandler {
 
+    event FlashLoanRecieved();
+
     TestUSDToken public token;
     address uniswapDummyContractAddress;
     UniswapDummyContract uniswapDummyContract;
@@ -50,7 +52,7 @@ contract FlashLoanHandler {
 
     function recieveEthForArbitrageSourceChain(uint256 destinationChain, address caller, uint256 laonAmount) 
     public payable {
-        bytes32 sendEthMsgHash = superchainWEth.sendETH{value: msg.value}(address(this), destinationChain);
+        bytes32 sendEthMsgHash = superchainWEth.sendETH{value: address(this).balance}(address(this), destinationChain);
         
         messenger.sendMessage(
             destinationChain,
@@ -102,9 +104,11 @@ contract FlashLoanHandler {
     }
 
     function initFlashLoan(uint256 destinationChain) public {
-        require(destinationChain != block.chainid);
+        require(destinationChain != block.chainid, "Destination Chain Cannot Be Same As Source Chain");
 
         uint256 loanAmountRecieved = flashLoanVault.processMaxLoanRequest();
+
+        emit FlashLoanRecieved();
 
         this.recieveEthForArbitrageSourceChain(destinationChain, msg.sender, loanAmountRecieved);
     }
