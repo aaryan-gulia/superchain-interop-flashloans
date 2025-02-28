@@ -18,10 +18,4 @@ This app uses interop to flash loan ERC20s between chains.
   <img src="https://github.com/user-attachments/assets/f245a645-49c5-4ed8-bca7-885bd0c95365" width="200">
 </p>
 
-Or view them as links:  
-- ![image](https://github.com/user-attachments/assets/00cb1565-530a-42e5-8163-edb883483390)  
-- ![image](https://github.com/user-attachments/assets/b1be8a63-8364-41e7-8134-1cacd4d79f5e)  
-- ![image](https://github.com/user-attachments/assets/f245a645-49c5-4ed8-bca7-885bd0c95365)  
-
-
 
