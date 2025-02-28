@@ -92,7 +92,7 @@ This project implements a cross-chain flash loan system that allows users to bor
 4. **IOP Bridge → FlashLoanHandler** (Receives ETH)
 5. **Flash Loan Handler → Dummy Contract**(Executes Arbitrage)
 6. **Dummy Contract → FlashLoanHandler** (Returns Arbitrage ETH)
-7. **FlashLoanHandler → IOP Bridge** → **FlashLoanVault**  (Bridges ETH back and Pays it in the Vault)
+7. **FlashLoanHandler → IOP Bridge** → **FlashLoanVault**(Bridges ETH back and Pays it in the Vault)
 8.**FlashLoanVault → Main Contracts** (Repaying ETH) 
 9. **Main Contract → User** (Sends Profit)
 
