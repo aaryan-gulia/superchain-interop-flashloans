@@ -1,9 +1,5 @@
 # superchain-interop-flashloans
 
-> Generated from [superchain-starter](https://github.com/ethereum-optimism/superchain-starter). See the original repository for the initial development guide.
->
-> SuperchainERC20s can be deployed on any chain, but will only be interoperable within the [Superchain interop cluster](https://docs.optimism.io/stack/interop/explainer#superchain-interop-cluster).
-
 This Repo was used as a Guide: [superchain-starter-xchain-flash-loan-example](https://github.com/ethereum-optimism/superchain-starter-xchain-flash-loan-example/blob/main/README.md)  
 
 The Following Example Provides a FrontEnd built on React.js and ether.js. Instead of viem or wagmi  
