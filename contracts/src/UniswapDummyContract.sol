@@ -31,6 +31,7 @@ contract UniswapDummyContract {
     // }
     constructor(TestUSDToken _token) {
         token = _token;
+        token.mint(address(this), 100_000_000 ether);
     }
     
 
@@ -58,7 +59,7 @@ contract UniswapDummyContract {
         uint256 ethAmount = tusdAmount / price_eth_in_usdc;
         uint256 finalEthAmount = ethAmount + ((ethAmount * premium_percent) / 10000);
 
-        require(address(this).balance > finalEthAmount, "Not enough ETH in contract");
+        require(address(this).balance >= finalEthAmount, "Not enough ETH in contract");
     
         token.transferFrom(msg.sender, address(this), tusdAmount);
         receivingAddress.transfer(finalEthAmount);
