@@ -8,6 +8,7 @@ import {ICreateX} from "createx/ICreateX.sol";
 import {DeployUtils} from "../libraries/DeployUtils.sol";
 import {TestUSDToken, UniswapDummyContract} from "../src/UniswapDummyContract.sol";
 import {FlashLoanHandler} from "../src/FlashLoanHandler.sol";
+import {FlashLoanVault} from "../src/FlashLoanVault.sol";
 
 contract Deploy is Script {
     /// @notice Array of RPC URLs to deploy to, deploy to supersim 901 and 902 by default.
@@ -28,8 +29,14 @@ contract Deploy is Script {
             vm.createSelectFork(rpcUrl);
             address testUSDTokenAddress = deployTestUSDToken();
             address uniswapDummyContractAddress = deployUniswapDummyContract(testUSDTokenAddress);
-            address flashLoanHandler = deployFlashLoanHandler(uniswapDummyContractAddress);
+            address flashLoanVaultAddress = deployFlashLoanVault();
+            address flashLoanHandlerAddress = deployFlashLoanHandler(uniswapDummyContractAddress, flashLoanVaultAddress);
         }
+    }
+
+    function deployFlashLoanVault() public broadcast returns (address addr_){
+        bytes memory initCode = abi.encodePacked(type(FlashLoanVault).creationCode);
+        addr_ = DeployUtils.deployContract("FlashLoanVault", _implSalt(), initCode);
     }
 
     function deployTestUSDToken() public broadcast returns (address addr_){
@@ -42,8 +49,12 @@ contract Deploy is Script {
         addr_ = DeployUtils.deployContract("UniswapDummyContract", _implSalt(), initCode);
     }
 
-    function deployFlashLoanHandler(address uniswapDummyContractAddress) public broadcast returns (address addr_){
-        bytes memory initCode = abi.encodePacked(type(FlashLoanHandler).creationCode, abi.encode(uniswapDummyContractAddress));
+    function deployFlashLoanHandler(address uniswapDummyContractAddress, address flashLoanVaultAddress) 
+    public broadcast returns (address addr_){
+        bytes memory initCode = abi.encodePacked(
+            type(FlashLoanHandler).creationCode, 
+            abi.encode(uniswapDummyContractAddress, flashLoanVaultAddress)
+            );
         addr_ = DeployUtils.deployContract("FlashLoanHandler", _implSalt(), initCode);
     }
 
