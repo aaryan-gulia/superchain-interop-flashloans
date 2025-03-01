@@ -12,7 +12,7 @@ import {FlashLoanVault} from "../src/FlashLoanVault.sol";
 
 contract Deploy is Script {
     /// @notice Array of RPC URLs to deploy to, deploy to supersim 901 and 902 by default.
-    string[] private rpcUrls = ["http://localhost:9545", "http://localhost:9546"];
+    string[] private rpcUrls = ["https://interop-alpha-0.optimism.io/", "https://interop-alpha-1.optimism.io/"];
 
     /// @notice Modifier that wraps a function in broadcasting.
     modifier broadcast() {
@@ -34,7 +34,7 @@ contract Deploy is Script {
         }
     }
 
-    function deployFlashLoanVault() public broadcast returns (address addr_){
+    function deployFlashLoanVault() public payable broadcast returns (address addr_){
         bytes memory initCode = abi.encodePacked(type(FlashLoanVault).creationCode);
         addr_ = DeployUtils.deployContract("FlashLoanVault", _implSalt(), initCode);
     }
@@ -44,7 +44,7 @@ contract Deploy is Script {
         addr_ = DeployUtils.deployContract("TestUSDToken", _implSalt(), initCode);
     }
 
-    function deployUniswapDummyContract(address testUSDTokenAddress) public broadcast returns (address addr_){
+    function deployUniswapDummyContract(address testUSDTokenAddress) public payable broadcast returns (address addr_){
         bytes memory initCode = abi.encodePacked(type(UniswapDummyContract).creationCode, abi.encode(testUSDTokenAddress));
         addr_ = DeployUtils.deployContract("UniswapDummyContract", _implSalt(), initCode);
     }
