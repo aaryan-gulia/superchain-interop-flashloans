@@ -20,7 +20,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "thirdweb": "^5.63.0",
-    "use-count-up": "^3.0.1"
+    "use-count-up": "^3.0.1",
+    "viem": "^2.23.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

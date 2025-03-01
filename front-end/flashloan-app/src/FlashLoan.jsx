@@ -81,29 +81,37 @@ export const FlashLoan = () => {
 
     const [startCounting, setStartCounting] = useState(false)
     const [isInProgress, setIsInProgress] = useState(false)
+    const [value, setValue] = useState(0)
 
-    const { value, reset } = useCountUp({
-        isCounting: startCounting,
-        duration: 7,
-        easing: 'linear',
-        start: 0,
-        end: 100,
-        onComplete: () => {
+    const [loanAmountReceived, setLoanAmountReceived] = useState({})
+    const [ethSold, setEthSold] = useState({})
+    const [ethBought, setEthBought] = useState({})
+    const [loanAmountRepaid, setLoanAmountRepaid] = useState({})
+    const [profitSent, setProfitSent] = useState({})
 
-            setIsInProgress(false)
+    // const { value, reset } = useCountUp({
+    //     isCounting: startCounting,
+    //     duration: 7,
+    //     easing: 'linear',
+    //     start: 0,
+    //     end: 100,
+    //     onComplete: () => {
 
-            return ({
-                shouldRepeat: false,
-                delay: 1,
-            })
-        }
-      })
+    //         setIsInProgress(false)
+
+    //         return ({
+    //             shouldRepeat: false,
+    //             delay: 1,
+    //         })
+    //     }
+    //   })
       
 
     const executeFlashLoan = async () => {
         console.log('activating counting')
-        reset();
-        setStartCounting(true)
+        // reset();
+        setValue(0);
+        // setStartCounting(true)
         setIsInProgress(true)
 
         await callContract()
@@ -154,16 +162,64 @@ export const FlashLoan = () => {
         clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
       });
 
-    const getSigner = async () => {
-        return await ethers5Adapter.signer.toEthers({ client, chain: superchainA, account: activeAccount });
+    const getSigner = async (chain) => {
+        return await ethers5Adapter.signer.toEthers({ client, chain: chain, account: activeAccount });
     }
 
     const callContract = async() => {
-        const signer = await getSigner();
-        const connectedContract = new ethers.Contract("0xaa8DE454aD9231FB41A74283D8dA42C5A321C534", tokenAbi, signer);
+        const signerA = await getSigner(superchainA);
+        const signerB = await getSigner(superchainB);
 
-        console.log(connectedContract)
-        await connectedContract.initFlashLoan(902);
+        const connectedContractA = new ethers.Contract("0x2F70938f1eDD57023E7D8B23C5cC01D9ff2B4eaD", tokenAbi, signerA);
+        const connectedContractB = new ethers.Contract("0x2F70938f1eDD57023E7D8B23C5cC01D9ff2B4eaD", tokenAbi, signerB);
+
+        
+        console.log(connectedContractA)
+        console.log(connectedContractB)
+
+        setValue(10);
+
+        await connectedContractA.initFlashLoan(902).then(() => {
+
+            let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
+            connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
+                setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
+                setValue(value+10);
+                console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
+            }
+            )
+
+            let soldEthFilter = connectedContractA.filters.soldEth();                          
+            connectedContractB.on(soldEthFilter, (amount, chainId) => {
+                setEthSold({ amount: amount, chainId: chainId })
+                setValue(value+30);
+                console.log('sold eth: ', { amount: amount, chainId: chainId });
+            })
+
+            let boughtEthFilter = connectedContractA.filters.boughtEth();                          
+            connectedContractB.on(boughtEthFilter, (amount, chainId) => {
+                setEthBought({ amount: amount, chainId: chainId })
+                setValue(value+20);
+                console.log('bought eth: ',{ amount: amount, chainId: chainId });
+            })
+
+
+            let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
+            connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
+                setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                setValue(value+20);
+                console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+            })
+
+            let sentProfitFilter = connectedContractA.filters.sentProfit();                          
+            connectedContractA.on(sentProfitFilter, (profit, chainId) => {
+                setProfitSent({ amount: profit, chainId: chainId })
+                setValue(100);
+                setIsInProgress(false);
+                console.log('profit sent: ', { amount: profit, chainId: chainId });
+            })
+        });
+        
 
         console.log('contract called')
     }
@@ -301,7 +357,7 @@ export const FlashLoan = () => {
                     >
                     
                     {
-                        value > 100/6*1 &&
+                        value >= 10 &&
                             <Stack 
                                 direction="row"
                                 spacing={2}
@@ -316,7 +372,7 @@ export const FlashLoan = () => {
                             </Stack>
                     }
                     {
-                        value > 100/6*2 && 
+                        value >= 100/5*1 && 
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -326,12 +382,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Borrowing ETH on {chains[chainFrom].chainName}
+                                Borrowing { parseInt(loanAmountReceived.amount)/1000000000000000000} ETH on Chain { parseInt(loanAmountReceived.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 100/6*3 &&
+                        value >= 100/5*2 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -341,12 +397,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Selling ETH for USDC on {chains[chainTo].chainName}
+                                Selling { parseInt(ethSold.amount)/1000000000000000000 } ETH for USDC on { parseInt(ethSold.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 100/6*4 &&
+                        value >= 100/5*3 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -356,12 +412,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Buying ETH on {chains[chainTo].chainName}
+                                Buying { parseInt(ethBought.amount)/1000000000000000000 } ETH on { parseInt(ethBought.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 100/6*5 &&
+                        value >= 100/5*4 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -371,12 +427,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Repaying flash loan on {chains[chainFrom].chainName}
+                                Repaying flash loan of { parseInt(loanAmountRepaid.amount)/1000000000000000000 } on Chain { parseInt(loanAmountRepaid.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 99 &&
+                        value == 100 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -386,7 +442,7 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Review your profit on your wallet account
+                                Review your profit of { parseInt(profitSent.amount)/1000000000000000000 } ETH on your wallet account
                             </Typography>
                         </Stack>
                     }
