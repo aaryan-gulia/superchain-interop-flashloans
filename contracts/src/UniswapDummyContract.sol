@@ -24,7 +24,7 @@ contract UniswapDummyContract {
     uint256 public price_eth_in_usdc = 2500;
 
     // TODO: expected premium to identify
-    uint256 public premium_percent = 300; //3 percent
+    uint256 public premium_percent = 0; //3 percent
 
     // function fund () {
 
