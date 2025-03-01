@@ -25,20 +25,19 @@ This project implements a cross-chain flash loan system that allows users to bor
   ### [UniswapDummyContract.sol](https://github.com/aaryan-gulia/superchain-interop-flashloans/blob/main/contracts/src/UniswapDummyContract.sol)
   ### [FlashLoanHandler.sol](https://github.com/aaryan-gulia/superchain-interop-flashloans/blob/main/contracts/src/FlashLoanHandler.sol)
   
-## 1. Frontend Contract (Main Contract)
+## 1. Frontend Interaction Function (FlashLoanHandler Contract)
 ### Purpose:
 - Acts as the entry point for users to interact with the flash loan system.
-- Handles user requests, such as borrowing ETH for arbitrage as it communicates with the FlashloanVaultContract
-- Manages loan repayment and profit distribution. 
+- Handles user requests, such as borrowing ETH for arbitrage as it communicates with the Flashloanhandler which then communicates with FlashloanVaultContract 
+- Tracks loan repayment and profit distribution. 
 
 ---
 
 ## 2. Flash Loan Vault
 ### Purpose:
 - Provides ETH liquidity for flash loans.
-- Verifies loan requests and ensures availability.
-- Works with the **IOP - Bridge Interoperability** to send ETH cross-chain over to chain B
--  Notifies the **Main Contract** that funds have returned.
+- Verifies loan requests and ensures availability. 
+- Notifies the **Main Contract-FE** that funds have returned.
   
 ---
 
@@ -46,50 +45,50 @@ This project implements a cross-chain flash loan system that allows users to bor
 ### Purpose:
 - Handles cross-chain transfers of ETH.
 - Ensures safe and secure bridging of assets between Chain A and Chain B.
-- Communicates with the FlashLoan Vault to Repay the ETH.
-- Receives ETH back from Chain B after arbitrage and Communicates with the FlashLoan Vault
+- Communicates with the FlashLoanHandler to Tranfer and Repay the ETH.
+- Receives ETH back from Chain B after arbitrage and Communicates with the FlashLoanHandler
+- Basically all of the above is performed through the FlashloanHandler interacting with Interop pre-deploys. 
 
 ---
 
 ## 4. Flash Loan Handler
 ### Purpose:
-- Receives ETH to Chain B for arbitrage execution.
+- Receives ETH from the IOP-BRIDGE to Chain B for arbitrage execution.
 - Calls the Dummy contract on Chain B to notify about the incoming funds.
 - Verifies execution flow and ensures all steps are completed properly.
 - Checks that the borrowed amount has been used and repaid correctly.
 - Manages risk by enforcing loan rules.
 - Ensures arbitrage was completed successfully.
-- Checks if the **Dummy Contract** has returned ETH.
+- Calls the Dummy contract which is just (Liquidity Provider)
 
 ---
 
 ## 5. Dummy Contract (Arbitrage Execution)
 ### Purpose:
-- Executes the arbitrage trade between DEXs on Chain B for Now this Contract Simulates an Arbitrage as if it was in a DEX.
-- Returns ETH to the **Flash Loan Handler**
-- Executes the arbitrage logic (buy/sell to make a profit).
+-The Following contract acts just as a liquidity provider for the FlashloanHandler 
+-The **FlashloanHandler** is the one that calls the Dummy contract and executes arbitrage
 
 ---
 
 ## 6. Transaction Completion
 ### Final Steps:
-1. **Dummy Contract sends ETH back to the FlashLoanHandler**
+1. **FlashLoanHandler interacts with the Dummy Contract which provides the liquidity as if it was Uniswap/DEX**
 2. **Flash Loan Handler verifies that the process was successful.**
-3. **Flash loan Handler communicates with the IOP-Bridge, Bridges Funds over at the FlashLoan Vault and repays the Loan.**
-4. **Flash Loan Vault communicates with the Main Contract and repays the ETH.**
-5. **Flash Loan Vault  transfers remaining ETH profit to the user’s wallet.**
+3. **Flash loan Handler communicates with the Predeploy: IOP-Bridge, Bridges Funds over at the FlashLoan Vault and repays the Loan.**
+4. **FlashLoanHandler communicates with the Flash Loan Vault and repays the ETH.**
+5. **Flash Loan Vault transfers remaining ETH profit to the user’s wallet.**
 
 ---
 
 ### Final Overview of Contract Interactions
-1. **User → Main Contract** (Requests Flash Loan)
-2. **Main Contract → Flash Loan Vault** (Borrows ETH)
+1. **User(Interacts) → Main Contract** (Requests Flash Loan through the **FlashloanHandler**)
+2. **FlashloanHandler → Flash Loan Vault** (Borrows ETH)
 3. **Vault → IOP Bridge** (Bridges ETH to Chain B)
 4. **IOP Bridge → FlashLoanHandler** (Receives ETH)
-5. **Flash Loan Handler → Dummy Contract**(Executes Arbitrage)
-6. **Dummy Contract → FlashLoanHandler** (Returns Arbitrage ETH)
-7. **FlashLoanHandler → IOP Bridge** → **FlashLoanVault**(Bridges ETH back and Pays it in the Vault)
-8.**FlashLoanVault → Main Contracts** (Repaying ETH) 
+5. **Flash Loan Handler → Dummy Contract**(Executes Arbitrage and Dummy Provides LP)
+6. **Dummy Contract → FlashLoanHandler** (Provides LP)
+7. **FlashLoanHandler → IOP Bridge**→**FlashLoanVault**(Bridges ETH back and Pays it in the Vault)
+8. **FlashLoanVault → Main Contracts** (Repaying ETH) 
 9. **Main Contract → User** (Sends Profit)
 
 
