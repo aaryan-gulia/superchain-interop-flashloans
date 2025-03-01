@@ -54,9 +54,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 const superchainA = defineChain(
   {
-    id: 901,
-    name: "Supersim L2 Chain A",
-    rpc: "http://127.0.0.1:9545",
+    id: 420120000,
+    name: "interop-alpha-0",
+    //rpc: "http://127.0.0.1:9545",
+    rpc: 'https://interop-alpha-0.optimism.io',
     nativeCurrency: {
       name: "Ether",
       symbol: "ETH",
@@ -66,9 +67,10 @@ const superchainA = defineChain(
 )
 const superchainB = defineChain(
   {
-    id: 902,
-    name: "Supersim L2 Chain B",
-    rpc: "http://127.0.0.1:9546",
+    id: 420120001,
+    name: "interop-alpha-1",
+    // rpc: "http://127.0.0.1:9546",
+    rpc: 'https://interop-alpha-1.optimism.io',
     nativeCurrency: {
       name: "Ether",
       symbol: "ETH",
@@ -170,8 +172,8 @@ export const FlashLoan = () => {
         const signerA = await getSigner(superchainA);
         const signerB = await getSigner(superchainB);
 
-        const connectedContractA = new ethers.Contract("0x2F70938f1eDD57023E7D8B23C5cC01D9ff2B4eaD", tokenAbi, signerA);
-        const connectedContractB = new ethers.Contract("0x2F70938f1eDD57023E7D8B23C5cC01D9ff2B4eaD", tokenAbi, signerB);
+        const connectedContractA = new ethers.Contract(import.meta.env.VITE_CONTRACT_HANDLER, tokenAbi, signerA);
+        const connectedContractB = new ethers.Contract(import.meta.env.VITE_CONTRACT_HANDLER, tokenAbi, signerB);
 
         
         console.log(connectedContractA)
@@ -179,12 +181,14 @@ export const FlashLoan = () => {
 
         setValue(10);
 
-        await connectedContractA.initFlashLoan(902).then(() => {
+        await connectedContractA.initFlashLoan(superchainB.id).then(() => {
 
             let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
             connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
                 setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
-                setValue(value+10);
+                if(value <= 10) {
+                    setValue(20);
+                }
                 console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
             }
             )
@@ -192,14 +196,18 @@ export const FlashLoan = () => {
             let soldEthFilter = connectedContractA.filters.soldEth();                          
             connectedContractB.on(soldEthFilter, (amount, chainId) => {
                 setEthSold({ amount: amount, chainId: chainId })
-                setValue(value+30);
+                if(value <= 40) {
+                    setValue(40);
+                }
                 console.log('sold eth: ', { amount: amount, chainId: chainId });
             })
 
             let boughtEthFilter = connectedContractA.filters.boughtEth();                          
             connectedContractB.on(boughtEthFilter, (amount, chainId) => {
                 setEthBought({ amount: amount, chainId: chainId })
-                setValue(value+20);
+                if(value <= 60) {
+                    setValue(60);
+                }
                 console.log('bought eth: ',{ amount: amount, chainId: chainId });
             })
 
@@ -207,7 +215,10 @@ export const FlashLoan = () => {
             let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
             connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
                 setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
-                setValue(value+20);
+                console.log('value: ', value)
+                if(value<=80) {
+                    setValue(80);
+                }
                 console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
             })
 
@@ -227,7 +238,17 @@ export const FlashLoan = () => {
     
     return (
         <>
-            <ConnectButton theme="light" client={client} chains={ [ superchainA, superchainB] } />
+            <Box
+                sx={{
+                    justifyContent: "right",
+                    alignItems: "right",
+                    textAlign: 'right',
+                    spacing: 2,
+                    padding: "1%"
+                }}
+            >
+                <ConnectButton theme="light" client={client} chains={ [ superchainA, superchainB] } />
+            </Box>
 
             <Box
                 color="#000"
@@ -277,8 +298,8 @@ export const FlashLoan = () => {
                                     label="From"
                                     onChange={handleChangeChainA}
                                 >
-                                    <MenuItem value={0}>Chain A</MenuItem>
-                                    <MenuItem value={1}>Chain B</MenuItem>
+                                    <MenuItem value={0}>Devnet 0</MenuItem>
+                                    <MenuItem value={1}>Devnet 1</MenuItem>
                                 </Select>
                             </FormControl>
                         </Box>
@@ -291,9 +312,10 @@ export const FlashLoan = () => {
                                     value={ chainTo }
                                     label="From"
                                     onChange={handleChangeChainB}
+                                    disabled
                                 >
-                                    <MenuItem value={0}>Chain A</MenuItem>
-                                    <MenuItem value={1}>Chain B</MenuItem>
+                                    <MenuItem value={0}>Devnet 0</MenuItem>
+                                    <MenuItem value={1}>Devnet 1</MenuItem>
                                 </Select>
                             </FormControl>
                         </Box>
