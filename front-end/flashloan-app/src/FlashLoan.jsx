@@ -14,7 +14,6 @@ import LinearProgress from '@mui/joy/LinearProgress';
 import { defineChain, optimismSepolia } from "thirdweb/chains";
 import { createThirdwebClient } from "thirdweb";
 import { ethers5Adapter } from "thirdweb/adapters/ethers5";
-import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain } from "thirdweb/react";
 import { ethers } from 'ethers';
 import { abi as tokenAbi} from './assets/tokenAbi.json';
 import { useCountUp } from 'use-count-up';
@@ -25,6 +24,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
+
 // import { createPublicClient, http, defineChain } from 'viem'
 // import { mainnet } from 'viem/chains'
  
@@ -91,6 +92,10 @@ export const FlashLoan = () => {
     const [loanAmountRepaid, setLoanAmountRepaid] = useState({})
     const [profitSent, setProfitSent] = useState({})
 
+    const switchChain = useSwitchActiveWalletChain();
+    
+    const chainInUse = useActiveWalletChain()
+    
     // const { value, reset } = useCountUp({
     //     isCounting: startCounting,
     //     duration: 7,
@@ -133,9 +138,18 @@ export const FlashLoan = () => {
         ]
 
         const handleChangeChainA = (event) => {
+            console.log('chain in use: ', chainInUse)
             console.log("chain dropdown1: ", event.target.value)
             setChainFrom(event.target.value)
             setChainTo( event.target.value == 0 ? 1 : 0 )
+            if( chainFrom == 0 && event.target.value == 1) {
+                console.log('request change of network')
+                switchChain(superchainB)
+            }
+            if( chainFrom == 1 && event.target.value == 0) {
+                switchChain(superchainA)
+            }
+            
         };
 
         const handleChangeChainB = (event) => {
@@ -164,6 +178,25 @@ export const FlashLoan = () => {
         clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
       });
 
+      useEffect(() => {
+      
+        return () => {
+          let counter = 0;
+          counter += loanAmountReceived.chainId > 0 ? 1 : 0;
+          counter += loanAmountRepaid.chainId > 0 ? 1 : 0;
+          counter += ethSold.chainId > 0 ? 1 : 0;
+          counter += ethBought.chainId > 0 ? 1 : 0;
+          counter += profitSent.chainId > 0 ? 1 : 0;
+          console.log('counter: ', counter)
+          setValue(20*counter)
+          if(counter == 5 || parseInt(profitSent.chainId) > 0 ) {
+            setValue(100);
+            setIsInProgress(false);
+          }
+        }
+      }, [loanAmountReceived, loanAmountRepaid, ethSold, ethBought, profitSent])
+      
+
     const getSigner = async (chain) => {
         return await ethers5Adapter.signer.toEthers({ client, chain: chain, account: activeAccount });
     }
@@ -181,56 +214,108 @@ export const FlashLoan = () => {
 
         setValue(10);
 
-        await connectedContractA.initFlashLoan(superchainB.id).then(() => {
-
-            let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
-            connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
-                setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
-                if(value <= 10) {
-                    setValue(20);
+        if(chainInUse.id == 420120000) {
+            await connectedContractA.initFlashLoan(superchainB.id).then(() => {
+    
+                let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
+                connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
+                    setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
+                    // if(value <= 10) {
+                    //     setValue(20);
+                    // }
+                    console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
                 }
-                console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
-            }
-            )
+                )
+    
+                let soldEthFilter = connectedContractB.filters.soldEth();                          
+                connectedContractB.on(soldEthFilter, (amount, chainId) => {
+                    setEthSold({ amount: amount, chainId: chainId })
+                    // if(value <= 40) {
+                    //     setValue(40);
+                    // }
+                    console.log('sold eth: ', { amount: amount, chainId: chainId });
+                })
+    
+                let boughtEthFilter = connectedContractB.filters.boughtEth();                          
+                connectedContractB.on(boughtEthFilter, (amount, chainId) => {
+                    setEthBought({ amount: amount, chainId: chainId })
+                    // if(value <= 60) {
+                    //     setValue(60);
+                    // }
+                    console.log('bought eth: ',{ amount: amount, chainId: chainId });
+                })
+    
+    
+                let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
+                connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
+                    setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                    // if(value<=80) {
+                    //     setValue(80);
+                    // }
+                    console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+                })
+    
+                let sentProfitFilter = connectedContractA.filters.sentProfit();                          
+                connectedContractA.on(sentProfitFilter, (profit, chainId) => {
+                    setProfitSent({ amount: profit, chainId: chainId })
+                    // setValue(100);
+                    // setIsInProgress(false);
+                    console.log('profit sent: ', { amount: profit, chainId: chainId });
+                })
+            });
 
-            let soldEthFilter = connectedContractA.filters.soldEth();                          
-            connectedContractB.on(soldEthFilter, (amount, chainId) => {
-                setEthSold({ amount: amount, chainId: chainId })
-                if(value <= 40) {
-                    setValue(40);
+        } else {
+            await connectedContractB.initFlashLoan(superchainA.id).then(() => {
+    
+                let flashLoanRecievedFilter = connectedContractB.filters.flashLoanRecieved();                          
+                connectedContractB.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
+                    setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
+                    // if(value <= 10) {
+                    //     setValue(20);
+                    // }
+                    console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
                 }
-                console.log('sold eth: ', { amount: amount, chainId: chainId });
-            })
+                )
+    
+                let soldEthFilter = connectedContractA.filters.soldEth();                          
+                connectedContractA.on(soldEthFilter, (amount, chainId) => {
+                    setEthSold({ amount: amount, chainId: chainId })
+                    // if(value <= 40) {
+                    //     setValue(40);
+                    // }
+                    console.log('sold eth: ', { amount: amount, chainId: chainId });
+                })
+    
+                let boughtEthFilter = connectedContractA.filters.boughtEth();                          
+                connectedContractA.on(boughtEthFilter, (amount, chainId) => {
+                    setEthBought({ amount: amount, chainId: chainId })
+                    // if(value <= 60) {
+                    //     setValue(60);
+                    // }
+                    console.log('bought eth: ',{ amount: amount, chainId: chainId });
+                })
+    
+    
+                let flashLoanRepayedFilter = connectedContractB.filters.flashLoanRepayed();                          
+                connectedContractB.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
+                    setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                    console.log('value: ', value)
+                    // if(value<=80) {
+                    //     setValue(80);
+                    // }
+                    console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+                })
+    
+                let sentProfitFilter = connectedContractB.filters.sentProfit();                          
+                connectedContractB.on(sentProfitFilter, (profit, chainId) => {
+                    setProfitSent({ amount: profit, chainId: chainId })
+                    // setValue(100);
+                    // setIsInProgress(false);
+                    console.log('profit sent: ', { amount: profit, chainId: chainId });
+                })
+            });
 
-            let boughtEthFilter = connectedContractA.filters.boughtEth();                          
-            connectedContractB.on(boughtEthFilter, (amount, chainId) => {
-                setEthBought({ amount: amount, chainId: chainId })
-                if(value <= 60) {
-                    setValue(60);
-                }
-                console.log('bought eth: ',{ amount: amount, chainId: chainId });
-            })
-
-
-            let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
-            connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
-                setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
-                console.log('value: ', value)
-                if(value<=80) {
-                    setValue(80);
-                }
-                console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
-            })
-
-            let sentProfitFilter = connectedContractA.filters.sentProfit();                          
-            connectedContractA.on(sentProfitFilter, (profit, chainId) => {
-                setProfitSent({ amount: profit, chainId: chainId })
-                setValue(100);
-                setIsInProgress(false);
-                console.log('profit sent: ', { amount: profit, chainId: chainId });
-            })
-        });
-        
+        }
 
         console.log('contract called')
     }
@@ -297,6 +382,7 @@ export const FlashLoan = () => {
                                     value={ chainFrom }
                                     label="From"
                                     onChange={handleChangeChainA}
+                                    
                                 >
                                     <MenuItem value={0}>Devnet 0</MenuItem>
                                     <MenuItem value={1}>Devnet 1</MenuItem>
