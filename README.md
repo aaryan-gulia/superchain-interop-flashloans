@@ -72,7 +72,7 @@ This project implements a cross-chain flash loan system that allows users to bor
 
 ## 6. Transaction Completion
 ### Final Steps:
-1. **FlashLoanHandler interacts with the Dummy Contract which provides the liquidity as if it was Uniswap/DEX **
+1. **FlashLoanHandler interacts with the Dummy Contract which provides the liquidity as if it was Uniswap/DEX**
 2. **Flash Loan Handler verifies that the process was successful.**
 3. **Flash loan Handler communicates with the Predeploy: IOP-Bridge, Bridges Funds over at the FlashLoan Vault and repays the Loan.**
 4. **FlashLoanHandler communicates with the Flash Loan Vault and repays the ETH.**
