@@ -14,7 +14,6 @@ import LinearProgress from '@mui/joy/LinearProgress';
 import { defineChain, optimismSepolia } from "thirdweb/chains";
 import { createThirdwebClient } from "thirdweb";
 import { ethers5Adapter } from "thirdweb/adapters/ethers5";
-import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain } from "thirdweb/react";
 import { ethers } from 'ethers';
 import { abi as tokenAbi} from './assets/tokenAbi.json';
 import { useCountUp } from 'use-count-up';
@@ -25,6 +24,8 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
+
 // import { createPublicClient, http, defineChain } from 'viem'
 // import { mainnet } from 'viem/chains'
  
@@ -54,9 +55,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 const superchainA = defineChain(
   {
-    id: 901,
-    name: "Supersim L2 Chain A",
-    rpc: "http://127.0.0.1:9545",
+    id: 420120000,
+    name: "interop-alpha-0",
+    //rpc: "http://127.0.0.1:9545",
+    rpc: 'https://interop-alpha-0.optimism.io',
     nativeCurrency: {
       name: "Ether",
       symbol: "ETH",
@@ -66,9 +68,10 @@ const superchainA = defineChain(
 )
 const superchainB = defineChain(
   {
-    id: 902,
-    name: "Supersim L2 Chain B",
-    rpc: "http://127.0.0.1:9546",
+    id: 420120001,
+    name: "interop-alpha-1",
+    // rpc: "http://127.0.0.1:9546",
+    rpc: 'https://interop-alpha-1.optimism.io',
     nativeCurrency: {
       name: "Ether",
       symbol: "ETH",
@@ -81,29 +84,41 @@ export const FlashLoan = () => {
 
     const [startCounting, setStartCounting] = useState(false)
     const [isInProgress, setIsInProgress] = useState(false)
+    const [value, setValue] = useState(0)
 
-    const { value, reset } = useCountUp({
-        isCounting: startCounting,
-        duration: 7,
-        easing: 'linear',
-        start: 0,
-        end: 100,
-        onComplete: () => {
+    const [loanAmountReceived, setLoanAmountReceived] = useState({})
+    const [ethSold, setEthSold] = useState({})
+    const [ethBought, setEthBought] = useState({})
+    const [loanAmountRepaid, setLoanAmountRepaid] = useState({})
+    const [profitSent, setProfitSent] = useState({})
 
-            setIsInProgress(false)
+    const switchChain = useSwitchActiveWalletChain();
+    
+    const chainInUse = useActiveWalletChain()
+    
+    // const { value, reset } = useCountUp({
+    //     isCounting: startCounting,
+    //     duration: 7,
+    //     easing: 'linear',
+    //     start: 0,
+    //     end: 100,
+    //     onComplete: () => {
 
-            return ({
-                shouldRepeat: false,
-                delay: 1,
-            })
-        }
-      })
+    //         setIsInProgress(false)
+
+    //         return ({
+    //             shouldRepeat: false,
+    //             delay: 1,
+    //         })
+    //     }
+    //   })
       
 
     const executeFlashLoan = async () => {
         console.log('activating counting')
-        reset();
-        setStartCounting(true)
+        // reset();
+        setValue(0);
+        // setStartCounting(true)
         setIsInProgress(true)
 
         await callContract()
@@ -123,9 +138,18 @@ export const FlashLoan = () => {
         ]
 
         const handleChangeChainA = (event) => {
+            console.log('chain in use: ', chainInUse)
             console.log("chain dropdown1: ", event.target.value)
             setChainFrom(event.target.value)
             setChainTo( event.target.value == 0 ? 1 : 0 )
+            if( chainFrom == 0 && event.target.value == 1) {
+                console.log('request change of network')
+                switchChain(superchainB)
+            }
+            if( chainFrom == 1 && event.target.value == 0) {
+                switchChain(superchainA)
+            }
+            
         };
 
         const handleChangeChainB = (event) => {
@@ -149,21 +173,164 @@ export const FlashLoan = () => {
 
 
     const activeAccount = useActiveAccount();
+    console.log('activeAccount: ', activeAccount)
     
     const client = createThirdwebClient({
         clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
       });
 
-    const getSigner = async () => {
-        return await ethers5Adapter.signer.toEthers({ client, chain: superchainA, account: activeAccount });
+      useEffect(() => {
+      
+        return () => {
+          let counter = 0;
+          counter += loanAmountReceived.chainId > 0 ? 1 : 0;
+          counter += loanAmountRepaid.chainId > 0 ? 1 : 0;
+          counter += ethSold.chainId > 0 ? 1 : 0;
+          counter += ethBought.chainId > 0 ? 1 : 0;
+          counter += profitSent.chainId > 0 ? 1 : 0;
+          console.log('counter: ', counter)
+          
+          if(counter == 5 || parseInt(profitSent.chainId) > 0 ) {
+            setValue(100);
+            setIsInProgress(false);
+          } else {
+            setValue(20*counter)
+          }
+        }
+      }, [loanAmountReceived, loanAmountRepaid, ethSold, ethBought, profitSent])
+      
+
+    const getSigner = async (chain) => {
+        return await ethers5Adapter.signer.toEthers({ client, chain: chain, account: activeAccount });
     }
 
     const callContract = async() => {
-        const signer = await getSigner();
-        const connectedContract = new ethers.Contract("0xaa8DE454aD9231FB41A74283D8dA42C5A321C534", tokenAbi, signer);
+        const signerA = await getSigner(superchainA);
+        const signerB = await getSigner(superchainB);
 
-        console.log(connectedContract)
-        await connectedContract.initFlashLoan(902);
+        const connectedContractA = new ethers.Contract(import.meta.env.VITE_CONTRACT_HANDLER, tokenAbi, signerA);
+        const connectedContractB = new ethers.Contract(import.meta.env.VITE_CONTRACT_HANDLER, tokenAbi, signerB);
+
+        
+        console.log(connectedContractA)
+        console.log(connectedContractB)
+
+        setValue(0);
+
+        if(chainInUse.id == 420120000) {
+            try {
+                await connectedContractA.initFlashLoan(superchainB.id).then(() => {
+        
+                    let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
+                    connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
+                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
+                        // if(value <= 10) {
+                        //     setValue(20);
+                        // }
+                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
+                    }
+                    )
+        
+                    let soldEthFilter = connectedContractB.filters.soldEth();                          
+                    connectedContractB.on(soldEthFilter, (amount, chainId) => {
+                        setEthSold({ amount: amount, chainId: chainId })
+                        // if(value <= 40) {
+                        //     setValue(40);
+                        // }
+                        console.log('sold eth: ', { amount: amount, chainId: chainId });
+                    })
+        
+                    let boughtEthFilter = connectedContractB.filters.boughtEth();                          
+                    connectedContractB.on(boughtEthFilter, (amount, chainId) => {
+                        setEthBought({ amount: amount, chainId: chainId })
+                        // if(value <= 60) {
+                        //     setValue(60);
+                        // }
+                        console.log('bought eth: ',{ amount: amount, chainId: chainId });
+                    })
+        
+        
+                    let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
+                    connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
+                        setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                        // if(value<=80) {
+                        //     setValue(80);
+                        // }
+                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+                    })
+        
+                    let sentProfitFilter = connectedContractA.filters.sentProfit();                          
+                    connectedContractA.on(sentProfitFilter, (profit, chainId) => {
+                        setProfitSent({ amount: profit, chainId: chainId })
+                        // setValue(100);
+                        // setIsInProgress(false);
+                        console.log('profit sent: ', { amount: profit, chainId: chainId });
+                    })
+                });
+            } catch (error) {
+                alert(error.message)
+                setValue(0);
+                setIsInProgress(false);
+            }
+
+        } else {
+            try {
+                await connectedContractB.initFlashLoan(superchainA.id).then(() => {
+        
+                    let flashLoanRecievedFilter = connectedContractB.filters.flashLoanRecieved();                          
+                    connectedContractB.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
+                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
+                        // if(value <= 10) {
+                        //     setValue(20);
+                        // }
+                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
+                    }
+                    )
+        
+                    let soldEthFilter = connectedContractA.filters.soldEth();                          
+                    connectedContractA.on(soldEthFilter, (amount, chainId) => {
+                        setEthSold({ amount: amount, chainId: chainId })
+                        // if(value <= 40) {
+                        //     setValue(40);
+                        // }
+                        console.log('sold eth: ', { amount: amount, chainId: chainId });
+                    })
+        
+                    let boughtEthFilter = connectedContractA.filters.boughtEth();                          
+                    connectedContractA.on(boughtEthFilter, (amount, chainId) => {
+                        setEthBought({ amount: amount, chainId: chainId })
+                        // if(value <= 60) {
+                        //     setValue(60);
+                        // }
+                        console.log('bought eth: ',{ amount: amount, chainId: chainId });
+                    })
+        
+        
+                    let flashLoanRepayedFilter = connectedContractB.filters.flashLoanRepayed();                          
+                    connectedContractB.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
+                        setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                        console.log('value: ', value)
+                        // if(value<=80) {
+                        //     setValue(80);
+                        // }
+                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+                    })
+        
+                    let sentProfitFilter = connectedContractB.filters.sentProfit();                          
+                    connectedContractB.on(sentProfitFilter, (profit, chainId) => {
+                        setProfitSent({ amount: profit, chainId: chainId })
+                        // setValue(100);
+                        // setIsInProgress(false);
+                        console.log('profit sent: ', { amount: profit, chainId: chainId });
+                    })
+                });
+            } catch (error) {
+                alert(error.message)
+                setValue(0);
+                setIsInProgress(false);
+            }
+
+        }
 
         console.log('contract called')
     }
@@ -171,7 +338,17 @@ export const FlashLoan = () => {
     
     return (
         <>
-            <ConnectButton theme="light" client={client} chains={ [ superchainA, superchainB] } />
+            <Box
+                sx={{
+                    justifyContent: "right",
+                    alignItems: "right",
+                    textAlign: 'right',
+                    spacing: 2,
+                    padding: "1%"
+                }}
+            >
+                <ConnectButton theme="light" client={client} chains={ [ superchainA, superchainB] } />
+            </Box>
 
             <Box
                 color="#000"
@@ -220,9 +397,10 @@ export const FlashLoan = () => {
                                     value={ chainFrom }
                                     label="From"
                                     onChange={handleChangeChainA}
+                                    disabled={ isInProgress || !activeAccount }
                                 >
-                                    <MenuItem value={0}>Chain A</MenuItem>
-                                    <MenuItem value={1}>Chain B</MenuItem>
+                                    <MenuItem value={0}>Devnet 0</MenuItem>
+                                    <MenuItem value={1}>Devnet 1</MenuItem>
                                 </Select>
                             </FormControl>
                         </Box>
@@ -235,9 +413,10 @@ export const FlashLoan = () => {
                                     value={ chainTo }
                                     label="From"
                                     onChange={handleChangeChainB}
+                                    disabled
                                 >
-                                    <MenuItem value={0}>Chain A</MenuItem>
-                                    <MenuItem value={1}>Chain B</MenuItem>
+                                    <MenuItem value={0}>Devnet 0</MenuItem>
+                                    <MenuItem value={1}>Devnet 1</MenuItem>
                                 </Select>
                             </FormControl>
                         </Box>
@@ -252,7 +431,7 @@ export const FlashLoan = () => {
                     }}
                     // onClick={ callContract }
                     onClick={ executeFlashLoan }
-                    disabled={ isInProgress }
+                    disabled={ isInProgress || !activeAccount }
                     >
 
                     { 
@@ -301,7 +480,7 @@ export const FlashLoan = () => {
                     >
                     
                     {
-                        value > 100/6*1 &&
+                        value >= 10 &&
                             <Stack 
                                 direction="row"
                                 spacing={2}
@@ -316,7 +495,7 @@ export const FlashLoan = () => {
                             </Stack>
                     }
                     {
-                        value > 100/6*2 && 
+                        value >= 100/5*1 && 
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -326,12 +505,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Borrowing ETH on {chains[chainFrom].chainName}
+                                Borrowing { parseInt(loanAmountReceived.amount)/1000000000000000000} ETH on Chain { parseInt(loanAmountReceived.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 100/6*3 &&
+                        value >= 100/5*2 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -341,12 +520,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Selling ETH for USDC on {chains[chainTo].chainName}
+                                Selling { parseInt(ethSold.amount)/1000000000000000000 } ETH for USDC on { parseInt(ethSold.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 100/6*4 &&
+                        value >= 100/5*3 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -356,12 +535,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Buying ETH on {chains[chainTo].chainName}
+                                Buying { parseInt(ethBought.amount)/1000000000000000000 } ETH on { parseInt(ethBought.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 100/6*5 &&
+                        value >= 100/5*4 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -371,12 +550,12 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Repaying flash loan on {chains[chainFrom].chainName}
+                                Repaying flash loan of { parseInt(loanAmountRepaid.amount)/1000000000000000000 } on Chain { parseInt(loanAmountRepaid.chainId) }
                             </Typography>
                         </Stack>
                     }
                     {
-                        value > 99 &&
+                        value == 100 &&
                         <Stack 
                             direction="row"
                             spacing={2}
@@ -386,7 +565,7 @@ export const FlashLoan = () => {
                                 <CheckCircleIcon textColor='green' />
                             </Typography>
                             <Typography variant="h7" >
-                                Review your profit on your wallet account
+                                Review your profit of { parseInt(profitSent.amount)/1000000000000000000 } ETH on your wallet account
                             </Typography>
                         </Stack>
                     }
