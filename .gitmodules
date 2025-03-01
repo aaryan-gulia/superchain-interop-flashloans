@@ -19,3 +19,9 @@
 [submodule "contracts/lib/LayerZero-v2"]
 	path = contracts/lib/LayerZero-v2
 	url = https://github.com/LayerZero-Labs/LayerZero-v2
+[submodule "contracts/lib/devtools"]
+	path = contracts/lib/devtools
+	url = https://github.com/LayerZero-Labs/devtools
+[submodule "contracts/lib/endpoint-v1-solidity-examples"]
+	path = contracts/lib/endpoint-v1-solidity-examples
+	url = https://github.com/LayerZero-Labs/endpoint-v1-solidity-examples

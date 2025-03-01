@@ -69,6 +69,14 @@ contract UniswapDummyContract {
         return token;
     }
 
+    function getPremiumPercent() public view returns (uint256){
+        return premium_percent;
+    }
+
+    function setPremiumPercent(uint256 _premium_percent) public view {
+        premium_percent = _premium_percent;
+    }
+
     receive() external payable{}
 
 }

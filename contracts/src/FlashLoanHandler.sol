@@ -48,7 +48,6 @@ contract FlashLoanHandler {
         uint256 tokenBalance = token.balanceOf(address(this));
         require(tokenBalance > 0, "TOKEN Balance is zero after selling ETH");
 
-        console.log("token balance: ", tokenBalance);
         token.approve(uniswapDummyContractAddress, tokenBalance);
         uniswapDummyContract.buyEth(payable(address(this)), tokenBalance);
 
