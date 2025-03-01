@@ -20,7 +20,6 @@ This project implements a cross-chain flash loan system that allows users to bor
 
 ## 🔗 Contracts
 
-  ### [CrosschainFlashLoanBridge.sol](_)
   ### [FlashLoanVault.sol](https://github.com/aaryan-gulia/superchain-interop-flashloans/blob/main/contracts/src/FlashLoanVault.sol)
   ### [FrontEnd Main Contract](https://github.com/aaryan-gulia/superchain-interop-flashloans/tree/main/front-end/flashloan-app/src)
   ### [UniswapDummyContract.sol](https://github.com/aaryan-gulia/superchain-interop-flashloans/blob/main/contracts/src/UniswapDummyContract.sol)
