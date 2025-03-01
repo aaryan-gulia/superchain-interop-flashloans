@@ -25,12 +25,50 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
+// import { createPublicClient, http, defineChain } from 'viem'
+// import { mainnet } from 'viem/chains'
+ 
+// 2. Set up your client with desired chain & transport.
+// const client = createPublicClient({
+//   chain: mainnet,
+//   transport: http(),
+// })
 
-const superchain = defineChain(
+// export const superChainA = defineChain({
+//     id: 901,
+//     name: 'Supersim L2 Chain A',
+//     nativeCurrency: {
+//       decimals: 18,
+//       name: 'Ether',
+//       symbol: 'ETH',
+//     },
+//     rpcUrls: {
+//       default: {
+//         http: ['http://127.0.0.1:9545'],
+//       },
+//     },
+//     blockExplorers: {
+//       default: { name: 'Explorer', url: 'https://explorer.zora.energy' },
+//     },
+//   })
+
+const superchainA = defineChain(
+  {
+    id: 901,
+    name: "Supersim L2 Chain A",
+    rpc: "http://127.0.0.1:9545",
+    nativeCurrency: {
+      name: "Ether",
+      symbol: "ETH",
+      decimals: 18,
+    },
+  }
+)
+const superchainB = defineChain(
   {
     id: 902,
     name: "Supersim L2 Chain B",
-    rpc: "http://localhost:9546",
+    rpc: "http://127.0.0.1:9546",
     nativeCurrency: {
       name: "Ether",
       symbol: "ETH",
@@ -117,7 +155,7 @@ export const FlashLoan = () => {
       });
 
     const getSigner = async () => {
-        return await ethers5Adapter.signer.toEthers({ client, chain: superchain, account: activeAccount });
+        return await ethers5Adapter.signer.toEthers({ client, chain: superchainA, account: activeAccount });
     }
 
     const callContract = async() => {
@@ -125,15 +163,15 @@ export const FlashLoan = () => {
         const connectedContract = new ethers.Contract("0xaa8DE454aD9231FB41A74283D8dA42C5A321C534", tokenAbi, signer);
 
         console.log(connectedContract)
-        let response = await connectedContract.initFlashLoan(902);
+        await connectedContract.initFlashLoan(902);
 
-        console.log('response: ', response)
+        console.log('contract called')
     }
 
     
     return (
         <>
-            <ConnectButton theme="light" client={client} chains={ [ superchain] } />
+            <ConnectButton theme="light" client={client} chains={ [ superchainA, superchainB] } />
 
             <Box
                 color="#000"
