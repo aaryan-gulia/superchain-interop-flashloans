@@ -173,6 +173,7 @@ export const FlashLoan = () => {
 
 
     const activeAccount = useActiveAccount();
+    console.log('activeAccount: ', activeAccount)
     
     const client = createThirdwebClient({
         clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
@@ -188,10 +189,12 @@ export const FlashLoan = () => {
           counter += ethBought.chainId > 0 ? 1 : 0;
           counter += profitSent.chainId > 0 ? 1 : 0;
           console.log('counter: ', counter)
-          setValue(20*counter)
+          
           if(counter == 5 || parseInt(profitSent.chainId) > 0 ) {
             setValue(100);
             setIsInProgress(false);
+          } else {
+            setValue(20*counter)
           }
         }
       }, [loanAmountReceived, loanAmountRepaid, ethSold, ethBought, profitSent])
@@ -212,7 +215,7 @@ export const FlashLoan = () => {
         console.log(connectedContractA)
         console.log(connectedContractB)
 
-        setValue(10);
+        setValue(0);
 
         if(chainInUse.id == 420120000) {
             await connectedContractA.initFlashLoan(superchainB.id).then(() => {
@@ -382,7 +385,7 @@ export const FlashLoan = () => {
                                     value={ chainFrom }
                                     label="From"
                                     onChange={handleChangeChainA}
-                                    
+                                    disabled={ isInProgress || !activeAccount }
                                 >
                                     <MenuItem value={0}>Devnet 0</MenuItem>
                                     <MenuItem value={1}>Devnet 1</MenuItem>
@@ -416,7 +419,7 @@ export const FlashLoan = () => {
                     }}
                     // onClick={ callContract }
                     onClick={ executeFlashLoan }
-                    disabled={ isInProgress }
+                    disabled={ isInProgress || !activeAccount }
                     >
 
                     { 
