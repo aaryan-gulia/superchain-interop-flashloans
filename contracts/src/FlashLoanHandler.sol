@@ -10,7 +10,12 @@ import {CrossDomainMessageLib} from "@interop-lib/libraries/CrossDomainMessageLi
 
 contract FlashLoanHandler {
 
-    event FlashLoanRecieved();
+    event flashLoanRecieved(uint256 ethAmount, uint256 chainid);
+    event flashLoanRepayed(uint256 ethAmount, uint256 chainid);
+    event soldEth(uint256 ethAmount, uint256 chainid);
+    event boughtEth(uint256 ethAmount, uint256 chainid);
+    event sentProfit(uint256 ethAmount, uint256 chainid);
+    event noProfit();
 
     TestUSDToken public token;
     address uniswapDummyContractAddress;
@@ -37,6 +42,8 @@ contract FlashLoanHandler {
     function executeArbitrage(uint256 ethAmount) private {
         require(ethAmount <= address(this).balance, "ETH Amount > Balance, Can't run arbitrage");
         uniswapDummyContract.sellEth{value: ethAmount}();
+
+        emit soldEth(ethAmount, block.chainid);
     
         uint256 tokenBalance = token.balanceOf(address(this));
         require(tokenBalance > 0, "TOKEN Balance is zero after selling ETH");
@@ -44,6 +51,8 @@ contract FlashLoanHandler {
         console.log("token balance: ", tokenBalance);
         token.approve(uniswapDummyContractAddress, tokenBalance);
         uniswapDummyContract.buyEth(payable(address(this)), tokenBalance);
+
+        emit boughtEth(address(this).balance, block.chainid);
     }
 
     function recieveEthForArbitrage() public payable {
@@ -92,14 +101,18 @@ contract FlashLoanHandler {
         CrossDomainMessageLib.requireCrossDomainCallback();
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
 
-        uint256 profit = address(this).balance - loanAmount;
+        int256 profit = int256(address(this).balance) - int256(loanAmount);
 
         if(profit > 0){
             flashLoanVaultAddress.call {value: loanAmount} ("");
+            emit flashLoanRepayed(loanAmount, block.chainid);
             payable(caller).call {value: address(this).balance} ("");
+            emit sentProfit(uint256(profit), block.chainid);
         }
         else {
             flashLoanVaultAddress.call {value: address(this).balance} ("");
+            emit flashLoanRepayed(loanAmount, block.chainid);
+            emit noProfit();
         }
     }
 
@@ -108,7 +121,7 @@ contract FlashLoanHandler {
 
         uint256 loanAmountRecieved = flashLoanVault.processMaxLoanRequest();
 
-        emit FlashLoanRecieved();
+        emit flashLoanRecieved(loanAmountRecieved, block.chainid);
 
         this.recieveEthForArbitrageSourceChain(destinationChain, msg.sender, loanAmountRecieved);
     }
