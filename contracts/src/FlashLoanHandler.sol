@@ -31,7 +31,7 @@ contract FlashLoanHandler {
 
     constructor(address _uniswapDummyContractAddress, address _flashLoanVaultAddress) {
         uniswapDummyContractAddress = _uniswapDummyContractAddress;
-        uniswapDummyContract = UniswapDummyContract(uniswapDummyContractAddress);
+        uniswapDummyContract = UniswapDummyContract(payable(uniswapDummyContractAddress));
         token = uniswapDummyContract.getToken();
 
         flashLoanVaultAddress = payable(_flashLoanVaultAddress);

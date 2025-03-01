@@ -69,4 +69,6 @@ contract UniswapDummyContract {
         return token;
     }
 
+    receive() external payable{}
+
 }
