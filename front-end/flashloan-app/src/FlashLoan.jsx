@@ -25,7 +25,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
-
+import OpLogo from './assets/op_logo.svg'
 // import { createPublicClient, http, defineChain } from 'viem'
 // import { mainnet } from 'viem/chains'
  
@@ -183,11 +183,11 @@ export const FlashLoan = () => {
       
         return () => {
           let counter = 0;
-          counter += loanAmountReceived.chainId > 0 ? 1 : 0;
-          counter += loanAmountRepaid.chainId > 0 ? 1 : 0;
-          counter += ethSold.chainId > 0 ? 1 : 0;
-          counter += ethBought.chainId > 0 ? 1 : 0;
-          counter += profitSent.chainId > 0 ? 1 : 0;
+          counter += parseInt(loanAmountReceived.chainId) > 0 ? 1 : 0;
+          counter += parseInt(loanAmountRepaid.chainId) > 0 ? 1 : 0;
+          counter +=parseInt(ethSold.chainId) > 0 ? 1 : 0;
+          counter += parseInt(ethBought.chainId) > 0 ? 1 : 0;
+          counter += parseInt(profitSent.chainId) > 0 ? 1 : 0;
           console.log('counter: ', counter)
           
           if(counter == 5 || parseInt(profitSent.chainId) > 0 ) {
@@ -262,8 +262,8 @@ export const FlashLoan = () => {
                     let sentProfitFilter = connectedContractA.filters.sentProfit();                          
                     connectedContractA.on(sentProfitFilter, (profit, chainId) => {
                         setProfitSent({ amount: profit, chainId: chainId })
-                        // setValue(100);
-                        // setIsInProgress(false);
+                        setValue(100);
+                        setIsInProgress(false);
                         console.log('profit sent: ', { amount: profit, chainId: chainId });
                     })
                 });
@@ -319,8 +319,8 @@ export const FlashLoan = () => {
                     let sentProfitFilter = connectedContractB.filters.sentProfit();                          
                     connectedContractB.on(sentProfitFilter, (profit, chainId) => {
                         setProfitSent({ amount: profit, chainId: chainId })
-                        // setValue(100);
-                        // setIsInProgress(false);
+                        setValue(100);
+                        setIsInProgress(false);
                         console.log('profit sent: ', { amount: profit, chainId: chainId });
                     })
                 });
@@ -338,13 +338,15 @@ export const FlashLoan = () => {
     
     return (
         <>
+            
+            
             <Box
                 sx={{
                     justifyContent: "right",
                     alignItems: "right",
                     textAlign: 'right',
                     spacing: 2,
-                    padding: "1%"
+                    padding: "1%",
                 }}
             >
                 <ConnectButton theme="light" client={client} chains={ [ superchainA, superchainB] } />
@@ -358,6 +360,7 @@ export const FlashLoan = () => {
                     borderRadius: 1,
                     border: 1,
                     borderColor: 'black',
+                    backgroundColor: '#f6f2f2'
                 }}
             > 
                 <Stack
@@ -365,15 +368,22 @@ export const FlashLoan = () => {
                     justifyContent="center"
                     alignItems="center"
                     textAlign='center'
-                    spacing={2}
-                    padding={ "5%" }
+                    spacing={1.5}
+                    padding={ "2%" }
                 >
                     <Typography 
-                    color="#000"
-                    textTransform={ 'none' } 
-                    variant="h4"
+                        color="#000"
+                        textTransform={ 'none' } 
+                        variant="h4"
                     > 
-                    Superchain Flash Loan Arbitrage  
+                        Superchain Flash Loan Arbitrage  
+                    </Typography>
+                    <Typography 
+                        color="#000"
+                        textTransform={ 'none' } 
+                        variant="h7"
+                    > 
+                        Powered by <img src={OpLogo} alt="React Logo" width={25} />
                     </Typography>
 
                     {/* <Box sx={{ width: 500, maxWidth: '100%' }}>
