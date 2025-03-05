@@ -10,11 +10,11 @@ import {CrossDomainMessageLib} from "@interop-lib/libraries/CrossDomainMessageLi
 
 contract FlashLoanHandler {
 
-    event flashLoanRecieved(uint256 ethAmount, uint256 chainid, address user);
-    event flashLoanRepayed(uint256 ethAmount, uint256 chainid, address user);
-    event soldEth(uint256 ethAmount, uint256 chainid, address user);
-    event boughtEth(uint256 ethAmount, uint256 chainid, address user);
-    event sentProfit(uint256 ethAmount, uint256 chainid, address user);
+    event flashLoanRecieved(uint256 eventId, uint256 ethAmount, uint256 chainid, address user);
+    event flashLoanRepayed(uint256 eventId, uint256 ethAmount, uint256 chainid, address user);
+    event soldEth(uint256 eventId, uint256 ethAmount, uint256 chainid, address user);
+    event boughtEth(uint256 eventId, uint256 ethAmount, uint256 chainid, address user);
+    event sentProfit(uint256 eventId, uint256 ethAmount, uint256 chainid, address user);
     event noProfit();
 
     TestUSDToken public token;
@@ -51,7 +51,7 @@ contract FlashLoanHandler {
         uniswapDummyContract.buyEth(payable(address(this)), tokenBalance);
     }
 
-    function recieveEthForArbitrageSourceChain(uint256 destinationChain, address caller, uint256 laonAmount) 
+    function recieveEthForArbitrageSourceChain(uint256 destinationChain, address caller, uint256 laonAmount, uint256 eventId) 
     public payable {
         bytes32 sendEthMsgHash = superchainWEth.sendETH{value: address(this).balance}(address(this), destinationChain);
         
@@ -63,19 +63,20 @@ contract FlashLoanHandler {
                 sendEthMsgHash,
                 uint256(block.chainid),
                 caller,
-                laonAmount
+                laonAmount,
+                eventId
                 )
         );
     }
 
-    function recieveEthForArbitrageDestinationChain(bytes32 sendEthMsgHash, uint256 sourceChain, address caller, uint256 loanAmount) 
+    function recieveEthForArbitrageDestinationChain(bytes32 sendEthMsgHash, uint256 sourceChain, address caller, uint256 loanAmount, uint256 eventId) 
     external {
         CrossDomainMessageLib.requireCrossDomainCallback();
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
 
-        emit soldEth(address(this).balance, block.chainid, caller);
+        emit soldEth(eventId, address(this).balance, block.chainid, caller);
         executeArbitrage(address(this).balance);
-        emit boughtEth(address(this).balance, block.chainid, caller);
+        emit boughtEth(eventId, address(this).balance, block.chainid, caller);
 
         bytes32 sendEthMsgHashBack = superchainWEth.sendETH{value: address(this).balance}(address(this), sourceChain);
         
@@ -86,12 +87,13 @@ contract FlashLoanHandler {
                 this.recieveEthOnSourceChainFromDestinationChain.selector,
                 sendEthMsgHashBack,
                 caller,
-                loanAmount
+                loanAmount,
+                eventId
                 )
             );
     }
 
-    function recieveEthOnSourceChainFromDestinationChain(bytes32 sendEthMsgHash, address caller, uint256 loanAmount) external{
+    function recieveEthOnSourceChainFromDestinationChain(bytes32 sendEthMsgHash, address caller, uint256 loanAmount, uint256 eventId) external{
         CrossDomainMessageLib.requireCrossDomainCallback();
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
 
@@ -99,13 +101,13 @@ contract FlashLoanHandler {
 
         if(profit > 0){
             flashLoanVaultAddress.call {value: loanAmount} ("");
-            emit flashLoanRepayed(loanAmount, block.chainid, caller);
+            emit flashLoanRepayed(eventId, loanAmount, block.chainid, caller);
             payable(caller).call {value: address(this).balance} ("");
-            emit sentProfit(uint256(profit), block.chainid, caller);
+            emit sentProfit(eventId, uint256(profit), block.chainid, caller);
         }
         else {
             flashLoanVaultAddress.call {value: address(this).balance} ("");
-            emit flashLoanRepayed(loanAmount, block.chainid, caller);
+            emit flashLoanRepayed(eventId, loanAmount, block.chainid, caller);
             emit noProfit();
         }
     }
@@ -114,10 +116,11 @@ contract FlashLoanHandler {
         require(destinationChain != block.chainid, "Destination Chain Cannot Be Same As Source Chain");
 
         uint256 loanAmountRecieved = flashLoanVault.processMaxLoanRequest();
+        uint256 eventId = block.number;
 
-        emit flashLoanRecieved(loanAmountRecieved, block.chainid, msg.sender);
+        emit flashLoanRecieved(eventId, loanAmountRecieved, block.chainid, msg.sender);
 
-        this.recieveEthForArbitrageSourceChain(destinationChain, msg.sender, loanAmountRecieved);
+        this.recieveEthForArbitrageSourceChain(destinationChain, msg.sender, loanAmountRecieved, eventId);
     }
 
     receive() external payable{}
