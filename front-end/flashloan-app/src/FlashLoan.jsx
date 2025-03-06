@@ -26,58 +26,55 @@ import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
 import OpLogo from './assets/op_logo.svg'
-// import { createPublicClient, http, defineChain } from 'viem'
-// import { mainnet } from 'viem/chains'
- 
-// 2. Set up your client with desired chain & transport.
-// const client = createPublicClient({
-//   chain: mainnet,
-//   transport: http(),
-// })
 
-// export const superChainA = defineChain({
-//     id: 901,
-//     name: 'Supersim L2 Chain A',
-//     nativeCurrency: {
-//       decimals: 18,
-//       name: 'Ether',
-//       symbol: 'ETH',
-//     },
-//     rpcUrls: {
-//       default: {
-//         http: ['http://127.0.0.1:9545'],
-//       },
-//     },
-//     blockExplorers: {
-//       default: { name: 'Explorer', url: 'https://explorer.zora.energy' },
-//     },
-//   })
-
-const superchainA = defineChain(
+const superchainA = import.meta.env.VITE_ENVIRONMENT == 'local' ? defineChain(
   {
-    id: 420120000,
-    name: "interop-alpha-0",
-    //rpc: "http://127.0.0.1:9545",
-    rpc: 'https://interop-alpha-0.optimism.io',
+    id: import.meta.env.VITE_LOCAL_CHAIN_A_ID,
+    name: import.meta.env.VITE_LOCAL_CHAIN_A_NAME,
+    rpc: import.meta.env.VITE_LOCAL_CHAIN_A_RPC,
     nativeCurrency: {
-      name: "Ether",
-      symbol: "ETH",
-      decimals: 18,
+      name: import.meta.env.VITE_LOCAL_CHAIN_A_LOCAL_CURRENCY_NAME,
+      symbol: import.meta.env.VITE_LOCAL_CHAIN_A_CURRENCY_SYMBOL,
+      decimals: import.meta.env.VITE_LOCAL_CHAIN_A_CURRENCY_DECIMALS,
     },
   }
+) :
+defineChain(
+    {
+        id: import.meta.env.VITE_DEVNET_CHAIN_A_ID,
+        name: import.meta.env.VITE_DEVNET_CHAIN_A_NAME,
+        rpc: import.meta.env.VITE_DEVNET_CHAIN_A_RPC,
+        nativeCurrency: {
+            name: import.meta.env.VITE_DEVNET_CHAIN_A_CURRENCY_NAME,
+            symbol: import.meta.env.VITE_DEVNET_CHAIN_A_CURRENCY_SYMBOL,
+            decimals: import.meta.env.VITE_DEVNET_CHAIN_A_CURRENCY_DECIMALS,
+        },
+    }
 )
-const superchainB = defineChain(
-  {
-    id: 420120001,
-    name: "interop-alpha-1",
-    // rpc: "http://127.0.0.1:9546",
-    rpc: 'https://interop-alpha-1.optimism.io',
-    nativeCurrency: {
-      name: "Ether",
-      symbol: "ETH",
-      decimals: 18,
-    },
-  }
+
+const superchainB = import.meta.env.VITE_ENVIRONMENT == 'local' ? defineChain(
+    {
+        id: import.meta.env.VITE_LOCAL_CHAIN_B_ID,
+        name: import.meta.env.VITE_LOCAL_CHAIN_B_NAME,
+        rpc: import.meta.env.VITE_LOCAL_CHAIN_B_RPC,
+        nativeCurrency: {
+            name: import.meta.env.VITE_LOCAL_CHAIN_B_CURRENCY_NAME,
+            symbol: import.meta.env.VITE_LOCAL_CHAIN_B_CURRENCY_SYMBOL,
+            decimals: import.meta.env.VITE_LOCAL_CHAIN_B_CURRENCY_DECIMALS,
+        },
+    }
+) :
+defineChain(
+    {
+        id: import.meta.env.VITE_DEVNET_CHAIN_B_ID,
+        name: import.meta.env.VITE_DEVNET_CHAIN_B_NAME,
+        rpc: import.meta.env.VITE_DEVNET_CHAIN_B_RPC,
+        nativeCurrency: {
+            name: import.meta.env.VITE_DEVNET_CHAIN_B_CURRENCY_NAME,
+            symbol: import.meta.env.VITE_DEVNET_CHAIN_B_CURRENCY_SYMBOL,
+            decimals: import.meta.env.VITE_DEVNET_CHAIN_B_CURRENCY_DECIMALS,
+        },
+    }
 )
 
 export const FlashLoan = () => {
@@ -92,33 +89,42 @@ export const FlashLoan = () => {
     const [loanAmountRepaid, setLoanAmountRepaid] = useState({})
     const [profitSent, setProfitSent] = useState({})
 
+    const [isLoanReceived, setIsLoanReceived] = useState(false)
+    const [isEthSold, setIsEthSold] = useState(false)
+    const [isEthBought, setIsEthBought] = useState(false)
+    const [isLoanRepaid, setIsLoanRepaid] = useState(false)
+    const [isProfitSent, setIsProfitSent] = useState(false)
+
     const switchChain = useSwitchActiveWalletChain();
     
     const chainInUse = useActiveWalletChain()
+
+    const [currentAccount, setCurrentAccount] = useState()
+
+    const activeAccount = useActiveAccount();
+    const address = activeAccount?.address;
+
+    useEffect(() => {
     
-    // const { value, reset } = useCountUp({
-    //     isCounting: startCounting,
-    //     duration: 7,
-    //     easing: 'linear',
-    //     start: 0,
-    //     end: 100,
-    //     onComplete: () => {
+        setIsInProgress(false)
+        setValue(0)
+        setIsLoanReceived(false)
+        setIsEthSold(false)
+        setIsEthBought(false)
+        setIsLoanRepaid(false)
+        setIsProfitSent(false)
 
-    //         setIsInProgress(false)
-
-    //         return ({
-    //             shouldRepeat: false,
-    //             delay: 1,
-    //         })
-    //     }
-    //   })
+    }, [address])
+    
       
-
     const executeFlashLoan = async () => {
-        console.log('activating counting')
-        // reset();
+        
         setValue(0);
-        // setStartCounting(true)
+        setIsLoanReceived(false)
+        setIsEthSold(false)
+        setIsEthBought(false)
+        setIsLoanRepaid(false)
+        setIsProfitSent(false)
         setIsInProgress(true)
 
         await callContract()
@@ -127,15 +133,6 @@ export const FlashLoan = () => {
 
         const [chainFrom, setChainFrom] = useState(0)
         const [chainTo, setChainTo] = useState(1)
-
-        const chains = [
-            {
-                chainName: "Chain A"
-            },
-            {
-                chainName: "Chain B"
-            }
-        ]
 
         const handleChangeChainA = (event) => {
             console.log('chain in use: ', chainInUse)
@@ -158,46 +155,58 @@ export const FlashLoan = () => {
             setChainFrom( event.target.value == 0 ? 1 : 0 )
         };
     
-
-    const [progressPercent, setProgressPercent] = useState(37)
-
-        // we need an amount input
-
-        // Initiating Flash Loan
-        // Borrowing X ETH
-        // Selling X ETH for Y USDC
-        // Buying Z ETH
-        // Repaying Flash loan
-        // End of flash loan
-        // Review your profit in your wallet accoun
-
-
-    const activeAccount = useActiveAccount();
-    console.log('activeAccount: ', activeAccount)
-    
     const client = createThirdwebClient({
         clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID,
       });
+    
 
       useEffect(() => {
-      
-        return () => {
-          let counter = 0;
-          counter += parseInt(loanAmountReceived.chainId) > 0 ? 1 : 0;
-          counter += parseInt(loanAmountRepaid.chainId) > 0 ? 1 : 0;
-          counter +=parseInt(ethSold.chainId) > 0 ? 1 : 0;
-          counter += parseInt(ethBought.chainId) > 0 ? 1 : 0;
-          counter += parseInt(profitSent.chainId) > 0 ? 1 : 0;
-          console.log('counter: ', counter)
-          
-          if(counter == 5 || parseInt(profitSent.chainId) > 0 ) {
-            setValue(100);
-            setIsInProgress(false);
-          } else {
-            setValue(20*counter)
+          console.log("useEffect loanAmountReceived called")
+          console.log("prev progress: ", value)
+          if( isLoanReceived && !isEthSold && !isEthBought && !isLoanRepaid && !isProfitSent) {    
+              console.log("new progress: ", 20)
+              setValue(20)
           }
-        }
-      }, [loanAmountReceived, loanAmountRepaid, ethSold, ethBought, profitSent])
+      }, [isLoanReceived])
+
+      useEffect(() => {
+          console.log("useEffect ethSold called")
+          console.log("prev progress: ", value)
+          if( isEthSold && !isEthBought && !isLoanRepaid && !isProfitSent) {
+              console.log("new progress: ", 40)
+              setValue(40)
+          }
+      }, [isEthSold])
+
+      useEffect(() => {
+          console.log("useEffect ethBought called")
+          console.log("prev progress: ", value)
+          if( isEthBought && !isLoanRepaid && !isProfitSent){
+              console.log("new progress: ", 60)
+              setValue(60)
+          }
+      }, [isEthBought])
+
+      useEffect(() => {
+          console.log("useEffect loanAmountRepaid called")
+          console.log("prev progress: ", value)
+          if( isLoanRepaid && !isProfitSent) {
+              console.log("new progress: ", 80)
+              setValue(80)
+          }
+      }, [isLoanRepaid])
+
+      useEffect(() => {
+          console.log("useEffect profitSent called")
+          console.log("useEffect profitSent userAddress: ", profitSent)
+          console.log("prev progress: ", value)
+          if(isProfitSent) {
+              setValue(100)
+              console.log("new progress: ", 100)
+              setIsInProgress(false)
+          }
+      }, [isProfitSent])
+      
       
 
     const getSigner = async (chain) => {
@@ -217,54 +226,45 @@ export const FlashLoan = () => {
 
         setValue(0);
 
-        if(chainInUse.id == 420120000) {
+        if(chainInUse.id == superchainA.id) {
             try {
                 await connectedContractA.initFlashLoan(superchainB.id).then(() => {
         
                     let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
-                    connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
-                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
-                        // if(value <= 10) {
-                        //     setValue(20);
-                        // }
-                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
+                    connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId, userAddress) => {
+                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })
+                        setIsLoanReceived(true)
+                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress });
                     }
                     )
         
                     let soldEthFilter = connectedContractB.filters.soldEth();                          
-                    connectedContractB.on(soldEthFilter, (amount, chainId) => {
-                        setEthSold({ amount: amount, chainId: chainId })
-                        // if(value <= 40) {
-                        //     setValue(40);
-                        // }
-                        console.log('sold eth: ', { amount: amount, chainId: chainId });
+                    connectedContractB.on(soldEthFilter, (amount, chainId, userAddress) => {
+                        setEthSold({ amount: amount, chainId: chainId, userAddress: userAddress })
+                        setIsEthSold(true)
+                        console.log('sold eth: ', { amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
                     let boughtEthFilter = connectedContractB.filters.boughtEth();                          
-                    connectedContractB.on(boughtEthFilter, (amount, chainId) => {
-                        setEthBought({ amount: amount, chainId: chainId })
-                        // if(value <= 60) {
-                        //     setValue(60);
-                        // }
-                        console.log('bought eth: ',{ amount: amount, chainId: chainId });
+                    connectedContractB.on(boughtEthFilter, (amount, chainId, userAddress) => {
+                        setEthBought({ amount: amount, chainId: chainId, userAddress: userAddress })
+                        setIsEthBought(true)
+                        console.log('bought eth: ',{ amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
         
                     let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
-                    connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
-                        setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
-                        // if(value<=80) {
-                        //     setValue(80);
-                        // }
-                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+                    connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId, userAddress) => {
+                        setLoanAmountRepaid({ amount: loanAmount, chainId: chainId, userAddress: userAddress })
+                        setIsLoanRepaid(true)
+                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId, userAddress: userAddress });
                     })
         
                     let sentProfitFilter = connectedContractA.filters.sentProfit();                          
-                    connectedContractA.on(sentProfitFilter, (profit, chainId) => {
-                        setProfitSent({ amount: profit, chainId: chainId })
-                        setValue(100);
-                        setIsInProgress(false);
-                        console.log('profit sent: ', { amount: profit, chainId: chainId });
+                    connectedContractA.on(sentProfitFilter, (profit, chainId, userAddress) => {
+                        setProfitSent({ amount: profit, chainId: chainId, userAddress: userAddress })
+                        setIsProfitSent(true)
+                        console.log('profit sent: ', { amount: profit, chainId: chainId, userAddress: userAddress });
                     })
                 });
             } catch (error) {
@@ -278,50 +278,41 @@ export const FlashLoan = () => {
                 await connectedContractB.initFlashLoan(superchainA.id).then(() => {
         
                     let flashLoanRecievedFilter = connectedContractB.filters.flashLoanRecieved();                          
-                    connectedContractB.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId) => {
-                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId })
-                        // if(value <= 10) {
-                        //     setValue(20);
-                        // }
-                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId });
+                    connectedContractB.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId, userAddress) => {
+                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })
+                        setIsLoanReceived(true)
+                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress });
                     }
                     )
         
                     let soldEthFilter = connectedContractA.filters.soldEth();                          
-                    connectedContractA.on(soldEthFilter, (amount, chainId) => {
-                        setEthSold({ amount: amount, chainId: chainId })
-                        // if(value <= 40) {
-                        //     setValue(40);
-                        // }
-                        console.log('sold eth: ', { amount: amount, chainId: chainId });
+                    connectedContractA.on(soldEthFilter, (amount, chainId, userAddress) => {
+                        setEthSold({ amount: amount, chainId: chainId, userAddress: userAddress })
+                        setIsEthSold(true)
+                        console.log('sold eth: ', { amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
                     let boughtEthFilter = connectedContractA.filters.boughtEth();                          
-                    connectedContractA.on(boughtEthFilter, (amount, chainId) => {
+                    connectedContractA.on(boughtEthFilter, (amount, chainId, userAddress) => {
                         setEthBought({ amount: amount, chainId: chainId })
-                        // if(value <= 60) {
-                        //     setValue(60);
-                        // }
-                        console.log('bought eth: ',{ amount: amount, chainId: chainId });
+                        setIsEthBought(true)
+                        console.log('bought eth: ',{ amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
         
                     let flashLoanRepayedFilter = connectedContractB.filters.flashLoanRepayed();                          
-                    connectedContractB.on(flashLoanRepayedFilter, (loanAmount, chainId) => {
+                    connectedContractB.on(flashLoanRepayedFilter, (loanAmount, chainId, userAddress) => {
                         setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                        setIsLoanRepaid(true)
                         console.log('value: ', value)
-                        // if(value<=80) {
-                        //     setValue(80);
-                        // }
-                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId });
+                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId, userAddress: userAddress });
                     })
         
                     let sentProfitFilter = connectedContractB.filters.sentProfit();                          
-                    connectedContractB.on(sentProfitFilter, (profit, chainId) => {
+                    connectedContractB.on(sentProfitFilter, (profit, chainId, userAddress) => {
                         setProfitSent({ amount: profit, chainId: chainId })
-                        setValue(100);
-                        setIsInProgress(false);
-                        console.log('profit sent: ', { amount: profit, chainId: chainId });
+                        setIsProfitSent(true)
+                        console.log('profit sent: ', { amount: profit, chainId: chainId, userAddress: userAddress });
                     })
                 });
             } catch (error) {
