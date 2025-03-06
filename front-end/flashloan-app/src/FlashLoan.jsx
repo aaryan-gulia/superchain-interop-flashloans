@@ -29,55 +29,61 @@ import OpLogo from './assets/op_logo.svg'
 
 const superchainA = import.meta.env.VITE_ENVIRONMENT == 'local' ? defineChain(
   {
-    id: import.meta.env.VITE_LOCAL_CHAIN_A_ID,
-    name: import.meta.env.VITE_LOCAL_CHAIN_A_NAME,
-    rpc: import.meta.env.VITE_LOCAL_CHAIN_A_RPC,
+    id: 901,
+    name: "Supersim Chain A",
+    rpc: "http://127.0.0.1:9545",
     nativeCurrency: {
-      name: import.meta.env.VITE_LOCAL_CHAIN_A_LOCAL_CURRENCY_NAME,
-      symbol: import.meta.env.VITE_LOCAL_CHAIN_A_CURRENCY_SYMBOL,
-      decimals: import.meta.env.VITE_LOCAL_CHAIN_A_CURRENCY_DECIMALS,
+      name: "Ether",
+      symbol: "ETH",
+      decimals: 18,
     },
   }
 ) :
 defineChain(
     {
-        id: import.meta.env.VITE_DEVNET_CHAIN_A_ID,
-        name: import.meta.env.VITE_DEVNET_CHAIN_A_NAME,
-        rpc: import.meta.env.VITE_DEVNET_CHAIN_A_RPC,
+        id: 420120000,
+        name: "interop-alpha-0",
+        rpc: "https://interop-alpha-0.optimism.io",
         nativeCurrency: {
-            name: import.meta.env.VITE_DEVNET_CHAIN_A_CURRENCY_NAME,
-            symbol: import.meta.env.VITE_DEVNET_CHAIN_A_CURRENCY_SYMBOL,
-            decimals: import.meta.env.VITE_DEVNET_CHAIN_A_CURRENCY_DECIMALS,
+            name: "Ether",
+            symbol: "ETH",
+            decimals: 18,
         },
     }
 )
 
 const superchainB = import.meta.env.VITE_ENVIRONMENT == 'local' ? defineChain(
     {
-        id: import.meta.env.VITE_LOCAL_CHAIN_B_ID,
-        name: import.meta.env.VITE_LOCAL_CHAIN_B_NAME,
-        rpc: import.meta.env.VITE_LOCAL_CHAIN_B_RPC,
+        id: 902,
+        name: "Supersim Chain B",
+        rpc: "http://127.0.0.1:9546",
         nativeCurrency: {
-            name: import.meta.env.VITE_LOCAL_CHAIN_B_CURRENCY_NAME,
-            symbol: import.meta.env.VITE_LOCAL_CHAIN_B_CURRENCY_SYMBOL,
-            decimals: import.meta.env.VITE_LOCAL_CHAIN_B_CURRENCY_DECIMALS,
+            name: "Ether",
+            symbol: "ETH",
+            decimals: 18,
         },
     }
 ) :
 defineChain(
     {
-        id: import.meta.env.VITE_DEVNET_CHAIN_B_ID,
-        name: import.meta.env.VITE_DEVNET_CHAIN_B_NAME,
-        rpc: import.meta.env.VITE_DEVNET_CHAIN_B_RPC,
+        id: 420120001,
+        name: "interop-alpha-1",
+        rpc: "https://interop-alpha-1.optimism.io",
         nativeCurrency: {
-            name: import.meta.env.VITE_DEVNET_CHAIN_B_CURRENCY_NAME,
-            symbol: import.meta.env.VITE_DEVNET_CHAIN_B_CURRENCY_SYMBOL,
-            decimals: import.meta.env.VITE_DEVNET_CHAIN_B_CURRENCY_DECIMALS,
+            name: "Ether",
+            symbol: "ETH",
+            decimals: 18,
         },
     }
 )
 
+
+console.log("superchainA: ", superchainA)
+console.log("superchainB: ", superchainB)
+
 export const FlashLoan = () => {
+    
+    const contractHandlerAddress = import.meta.env.VITE_ENVIRONMENT == 'local' ? import.meta.env.VITE_CONTRACT_HANDLER_LOCAL : import.meta.env.VITE_CONTRACT_HANDLER_DEVNET;
 
     const [startCounting, setStartCounting] = useState(false)
     const [isInProgress, setIsInProgress] = useState(false)
@@ -94,6 +100,8 @@ export const FlashLoan = () => {
     const [isEthBought, setIsEthBought] = useState(false)
     const [isLoanRepaid, setIsLoanRepaid] = useState(false)
     const [isProfitSent, setIsProfitSent] = useState(false)
+
+    const [_flashLoanId, set_flashLoanId] = useState(0)
 
     const switchChain = useSwitchActiveWalletChain();
     
@@ -141,9 +149,11 @@ export const FlashLoan = () => {
             setChainTo( event.target.value == 0 ? 1 : 0 )
             if( chainFrom == 0 && event.target.value == 1) {
                 console.log('request change of network')
+                console.log("switching to: ", superchainB)
                 switchChain(superchainB)
             }
             if( chainFrom == 1 && event.target.value == 0) {
+                console.log("switching to: ", superchainA)
                 switchChain(superchainA)
             }
             
@@ -217,8 +227,10 @@ export const FlashLoan = () => {
         const signerA = await getSigner(superchainA);
         const signerB = await getSigner(superchainB);
 
-        const connectedContractA = new ethers.Contract(import.meta.env.VITE_CONTRACT_HANDLER, tokenAbi, signerA);
-        const connectedContractB = new ethers.Contract(import.meta.env.VITE_CONTRACT_HANDLER, tokenAbi, signerB);
+        console.log("contract handler address: ", contractHandlerAddress)
+
+        const connectedContractA = new ethers.Contract(contractHandlerAddress, tokenAbi, signerA);
+        const connectedContractB = new ethers.Contract(contractHandlerAddress, tokenAbi, signerB);
 
         
         console.log(connectedContractA)
@@ -229,42 +241,46 @@ export const FlashLoan = () => {
         if(chainInUse.id == superchainA.id) {
             try {
                 await connectedContractA.initFlashLoan(superchainB.id).then(() => {
-        
-                    let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved();                          
-                    connectedContractA.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId, userAddress) => {
-                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })
+                    
+                    // const address = "0x000000000000000000000000000000000000dEaD"
+                    let flashLoanRecievedFilter = connectedContractA.filters.flashLoanRecieved(null,null, null, address);
+                    
+                    connectedContractA.on(flashLoanRecievedFilter, (flashLoanId, loanAmountRecieved, chainId, userAddress) => {
+                        
+                        setLoanAmountReceived({ flashLoanId: flashLoanId, amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })
                         setIsLoanReceived(true)
-                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress });
-                    }
-                    )
-        
-                    let soldEthFilter = connectedContractB.filters.soldEth();                          
-                    connectedContractB.on(soldEthFilter, (amount, chainId, userAddress) => {
-                        setEthSold({ amount: amount, chainId: chainId, userAddress: userAddress })
+                        console.log('loan amount received: ', { flashLoanId: flashLoanId, amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })                            
+
+                    })
+                    
+                    let soldEthFilter = connectedContractB.filters.soldEth(null, null, null, address);
+                    connectedContractB.on(soldEthFilter, (flashLoanId, amount, chainId, userAddress) => {
+                        setEthSold({ flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress })
                         setIsEthSold(true)
-                        console.log('sold eth: ', { amount: amount, chainId: chainId, userAddress: userAddress });
+                        console.log('sold eth: ', { flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress });
                     })
+                    
         
-                    let boughtEthFilter = connectedContractB.filters.boughtEth();                          
-                    connectedContractB.on(boughtEthFilter, (amount, chainId, userAddress) => {
-                        setEthBought({ amount: amount, chainId: chainId, userAddress: userAddress })
+                    let boughtEthFilter = connectedContractB.filters.boughtEth(null, null, null, address);
+                    connectedContractB.on(boughtEthFilter, (flashLoanId, amount, chainId, userAddress) => {
+                        setEthBought({ flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress })
                         setIsEthBought(true)
-                        console.log('bought eth: ',{ amount: amount, chainId: chainId, userAddress: userAddress });
+                        console.log('bought eth: ',{ flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
         
-                    let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed();                          
-                    connectedContractA.on(flashLoanRepayedFilter, (loanAmount, chainId, userAddress) => {
-                        setLoanAmountRepaid({ amount: loanAmount, chainId: chainId, userAddress: userAddress })
+                    let flashLoanRepayedFilter = connectedContractA.filters.flashLoanRepayed(null, null, null, address);
+                    connectedContractA.on(flashLoanRepayedFilter, (flashLoanId, loanAmount, chainId, userAddress) => {
+                        setLoanAmountRepaid({ flashLoanId: flashLoanId, amount: loanAmount, chainId: chainId, userAddress: userAddress })
                         setIsLoanRepaid(true)
-                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId, userAddress: userAddress });
+                        console.log('Flash loan repaid: ', { flashLoanId: flashLoanId, amount: loanAmount, chainId: chainId, userAddress: userAddress });
                     })
         
-                    let sentProfitFilter = connectedContractA.filters.sentProfit();                          
-                    connectedContractA.on(sentProfitFilter, (profit, chainId, userAddress) => {
-                        setProfitSent({ amount: profit, chainId: chainId, userAddress: userAddress })
+                    let sentProfitFilter = connectedContractA.filters.sentProfit(null, null, null, address);
+                    connectedContractA.on(sentProfitFilter, (flashLoanId, profit, chainId, userAddress) => {
+                        setProfitSent({ flashLoanId: flashLoanId, amount: profit, chainId: chainId, userAddress: userAddress })
                         setIsProfitSent(true)
-                        console.log('profit sent: ', { amount: profit, chainId: chainId, userAddress: userAddress });
+                        console.log('profit sent: ', { flashLoanId: flashLoanId, amount: profit, chainId: chainId, userAddress: userAddress });
                     })
                 });
             } catch (error) {
@@ -278,41 +294,41 @@ export const FlashLoan = () => {
                 await connectedContractB.initFlashLoan(superchainA.id).then(() => {
         
                     let flashLoanRecievedFilter = connectedContractB.filters.flashLoanRecieved();                          
-                    connectedContractB.on(flashLoanRecievedFilter, (loanAmountRecieved, chainId, userAddress) => {
-                        setLoanAmountReceived({ amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })
+                    connectedContractB.on(flashLoanRecievedFilter, (flashLoanId, loanAmountRecieved, chainId, userAddress) => {
+                        setLoanAmountReceived({ flashLoanId: flashLoanId, amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress })
                         setIsLoanReceived(true)
-                        console.log('loan amount received: ', { amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress });
+                        console.log('loan amount received: ', { flashLoanId: flashLoanId, amount: loanAmountRecieved, chainId: chainId, userAddress: userAddress });
                     }
                     )
         
                     let soldEthFilter = connectedContractA.filters.soldEth();                          
-                    connectedContractA.on(soldEthFilter, (amount, chainId, userAddress) => {
-                        setEthSold({ amount: amount, chainId: chainId, userAddress: userAddress })
+                    connectedContractA.on(soldEthFilter, (flashLoanId, amount, chainId, userAddress) => {
+                        setEthSold({ flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress })
                         setIsEthSold(true)
-                        console.log('sold eth: ', { amount: amount, chainId: chainId, userAddress: userAddress });
+                        console.log('sold eth: ', { flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
                     let boughtEthFilter = connectedContractA.filters.boughtEth();                          
-                    connectedContractA.on(boughtEthFilter, (amount, chainId, userAddress) => {
-                        setEthBought({ amount: amount, chainId: chainId })
+                    connectedContractA.on(boughtEthFilter, (flashLoanId, amount, chainId, userAddress) => {
+                        setEthBought({ flashLoanId: flashLoanId, amount: amount, chainId: chainId })
                         setIsEthBought(true)
-                        console.log('bought eth: ',{ amount: amount, chainId: chainId, userAddress: userAddress });
+                        console.log('bought eth: ',{ flashLoanId: flashLoanId, amount: amount, chainId: chainId, userAddress: userAddress });
                     })
         
         
                     let flashLoanRepayedFilter = connectedContractB.filters.flashLoanRepayed();                          
-                    connectedContractB.on(flashLoanRepayedFilter, (loanAmount, chainId, userAddress) => {
-                        setLoanAmountRepaid({ amount: loanAmount, chainId: chainId })
+                    connectedContractB.on(flashLoanRepayedFilter, (flashLoanId, loanAmount, chainId, userAddress) => {
+                        setLoanAmountRepaid({ flashLoanId: flashLoanId, amount: loanAmount, chainId: chainId })
                         setIsLoanRepaid(true)
                         console.log('value: ', value)
-                        console.log('Flash loan repaid: ', { amount: loanAmount, chainId: chainId, userAddress: userAddress });
+                        console.log('Flash loan repaid: ', { flashLoanId: flashLoanId, amount: loanAmount, chainId: chainId, userAddress: userAddress });
                     })
         
                     let sentProfitFilter = connectedContractB.filters.sentProfit();                          
-                    connectedContractB.on(sentProfitFilter, (profit, chainId, userAddress) => {
-                        setProfitSent({ amount: profit, chainId: chainId })
+                    connectedContractB.on(sentProfitFilter, (flashLoanId, profit, chainId, userAddress) => {
+                        setProfitSent({ flashLoanId: flashLoanId, amount: profit, chainId: chainId })
                         setIsProfitSent(true)
-                        console.log('profit sent: ', { amount: profit, chainId: chainId, userAddress: userAddress });
+                        console.log('profit sent: ', { flashLoanId: flashLoanId, amount: profit, chainId: chainId, userAddress: userAddress });
                     })
                 });
             } catch (error) {
@@ -424,153 +440,160 @@ export const FlashLoan = () => {
 
                     </Stack>
 
+                    {
+                        (address) && (
+                            <>
+                                <Button 
+                                variant="contained" fullWidth 
+                                sx={{ 
+                                    bgcolor: '#000'
+                                }}
+                                // onClick={ callContract }
+                                onClick={ executeFlashLoan }
+                                disabled={ isInProgress || !activeAccount }
+                                >
 
-                    <Button 
-                    variant="contained" fullWidth 
-                    sx={{ 
-                        bgcolor: '#000'
-                    }}
-                    // onClick={ callContract }
-                    onClick={ executeFlashLoan }
-                    disabled={ isInProgress || !activeAccount }
-                    >
+                                { 
+                                    !isInProgress ? 
+                                    (
+                                        'Execute Flash Loan '
+                                    ) :
+                                    (
+                                        <CircularProgress color="inherit" />
+                                    )
+                                }
+                                
+                                </Button>
+                                <Box sx={{ width: '100%' }}>
+                                    <LinearProgress
+                                        determinate
+                                        variant="solid"
+                                        size="sm"
+                                        thickness={24}
+                                        value={Number(value)}
+                                        sx={{
+                                            backgroundColor: '#fdd6cd',
+                                            color: '#f53306',
+                                            textColor: 'white',
+                                            '--LinearProgress-radius': '20px',
+                                            '--LinearProgress-thickness': '24px',
+                                        }}
+                                    >
+                                        <Typography
+                                            level="body-xs"
+                                            textColor="common.white"
+                                            sx={{ fontWeight: 'xl', mixBlendMode: 'difference' }}
+                                        >
+                                            {`${Math.round(Number(value))}%`}
+                                        </Typography>
+                                    </LinearProgress>
+                                </Box>
+                                
+                                <Stack 
+                                    direction="column"
+                                    justifyContent="left"
+                                    alignItems="left"
+                                    textAlign='left'
+                                    spacing={2}
+                                    fullWidth
+                                >
+                                
+                                {
+                                    value >= 10 &&
+                                        <Stack 
+                                            direction="row"
+                                            spacing={2}
+                                            width={600}
+                                        >
+                                            <Typography variant="h5" sx={{ color: 'green' }} >
+                                                <CheckCircleIcon textColor='green' />
+                                            </Typography>
+                                            <Typography variant="h7" >
+                                                Initiating flash loan
+                                            </Typography>
+                                        </Stack>
+                                }
+                                {
+                                    value >= 100/5*1 && 
+                                    <Stack 
+                                        direction="row"
+                                        spacing={2}
+                                        fullWidth
+                                    >
+                                        <Typography variant="h5" sx={{ color: 'green' }} >
+                                            <CheckCircleIcon textColor='green' />
+                                        </Typography>
+                                        <Typography variant="h7" >
+                                            Borrowing { parseInt(loanAmountReceived.amount)/1000000000000000000} ETH on Chain { parseInt(loanAmountReceived.chainId) }
+                                        </Typography>
+                                    </Stack>
+                                }
+                                {
+                                    value >= 100/5*2 &&
+                                    <Stack 
+                                        direction="row"
+                                        spacing={2}
+                                        fullWidth
+                                    >
+                                        <Typography variant="h5" sx={{ color: 'green' }} >
+                                            <CheckCircleIcon textColor='green' />
+                                        </Typography>
+                                        <Typography variant="h7" >
+                                            Selling { parseInt(ethSold.amount)/1000000000000000000 } ETH for USDC on { parseInt(ethSold.chainId) }
+                                        </Typography>
+                                    </Stack>
+                                }
+                                {
+                                    value >= 100/5*3 &&
+                                    <Stack 
+                                        direction="row"
+                                        spacing={2}
+                                        fullWidth
+                                    >
+                                        <Typography variant="h5" sx={{ color: 'green' }} >
+                                            <CheckCircleIcon textColor='green' />
+                                        </Typography>
+                                        <Typography variant="h7" >
+                                            Buying { parseInt(ethBought.amount)/1000000000000000000 } ETH on { parseInt(ethBought.chainId) }
+                                        </Typography>
+                                    </Stack>
+                                }
+                                {
+                                    value >= 100/5*4 &&
+                                    <Stack 
+                                        direction="row"
+                                        spacing={2}
+                                        fullWidth
+                                    >
+                                        <Typography variant="h5" sx={{ color: 'green' }} >
+                                            <CheckCircleIcon textColor='green' />
+                                        </Typography>
+                                        <Typography variant="h7" >
+                                            Repaying flash loan of { parseInt(loanAmountRepaid.amount)/1000000000000000000 } on Chain { parseInt(loanAmountRepaid.chainId) }
+                                        </Typography>
+                                    </Stack>
+                                }
+                                {
+                                    value == 100 &&
+                                    <Stack 
+                                        direction="row"
+                                        spacing={2}
+                                        fullWidth
+                                    >
+                                        <Typography variant="h5" sx={{ color: 'green' }} >
+                                            <CheckCircleIcon textColor='green' />
+                                        </Typography>
+                                        <Typography variant="h7" >
+                                            Review your profit of { parseInt(profitSent.amount)/1000000000000000000 } ETH on your wallet account
+                                        </Typography>
+                                    </Stack>
+                                }
+                                </Stack>
+                            </>
 
-                    { 
-                        !isInProgress ? 
-                        (
-                            'Execute Flash Loan '
-                        ) :
-                        (
-                            <CircularProgress color="inherit" />
                         )
+                        
                     }
-                    
-                    </Button>
-                    <Box sx={{ width: '100%' }}>
-                        <LinearProgress
-                            determinate
-                            variant="solid"
-                            size="sm"
-                            thickness={24}
-                            value={Number(value)}
-                            sx={{
-                                backgroundColor: '#fdd6cd',
-                                color: '#f53306',
-                                textColor: 'white',
-                                '--LinearProgress-radius': '20px',
-                                '--LinearProgress-thickness': '24px',
-                            }}
-                        >
-                            <Typography
-                                level="body-xs"
-                                textColor="common.white"
-                                sx={{ fontWeight: 'xl', mixBlendMode: 'difference' }}
-                            >
-                                {`${Math.round(Number(value))}%`}
-                            </Typography>
-                        </LinearProgress>
-                    </Box>
-                    
-                    <Stack 
-                        direction="column"
-                        justifyContent="left"
-                        alignItems="left"
-                        textAlign='left'
-                        spacing={2}
-                        fullWidth
-                    >
-                    
-                    {
-                        value >= 10 &&
-                            <Stack 
-                                direction="row"
-                                spacing={2}
-                                width={600}
-                            >
-                                <Typography variant="h5" sx={{ color: 'green' }} >
-                                    <CheckCircleIcon textColor='green' />
-                                </Typography>
-                                <Typography variant="h7" >
-                                    Initiating flash loan
-                                </Typography>
-                            </Stack>
-                    }
-                    {
-                        value >= 100/5*1 && 
-                        <Stack 
-                            direction="row"
-                            spacing={2}
-                            fullWidth
-                        >
-                            <Typography variant="h5" sx={{ color: 'green' }} >
-                                <CheckCircleIcon textColor='green' />
-                            </Typography>
-                            <Typography variant="h7" >
-                                Borrowing { parseInt(loanAmountReceived.amount)/1000000000000000000} ETH on Chain { parseInt(loanAmountReceived.chainId) }
-                            </Typography>
-                        </Stack>
-                    }
-                    {
-                        value >= 100/5*2 &&
-                        <Stack 
-                            direction="row"
-                            spacing={2}
-                            fullWidth
-                        >
-                            <Typography variant="h5" sx={{ color: 'green' }} >
-                                <CheckCircleIcon textColor='green' />
-                            </Typography>
-                            <Typography variant="h7" >
-                                Selling { parseInt(ethSold.amount)/1000000000000000000 } ETH for USDC on { parseInt(ethSold.chainId) }
-                            </Typography>
-                        </Stack>
-                    }
-                    {
-                        value >= 100/5*3 &&
-                        <Stack 
-                            direction="row"
-                            spacing={2}
-                            fullWidth
-                        >
-                            <Typography variant="h5" sx={{ color: 'green' }} >
-                                <CheckCircleIcon textColor='green' />
-                            </Typography>
-                            <Typography variant="h7" >
-                                Buying { parseInt(ethBought.amount)/1000000000000000000 } ETH on { parseInt(ethBought.chainId) }
-                            </Typography>
-                        </Stack>
-                    }
-                    {
-                        value >= 100/5*4 &&
-                        <Stack 
-                            direction="row"
-                            spacing={2}
-                            fullWidth
-                        >
-                            <Typography variant="h5" sx={{ color: 'green' }} >
-                                <CheckCircleIcon textColor='green' />
-                            </Typography>
-                            <Typography variant="h7" >
-                                Repaying flash loan of { parseInt(loanAmountRepaid.amount)/1000000000000000000 } on Chain { parseInt(loanAmountRepaid.chainId) }
-                            </Typography>
-                        </Stack>
-                    }
-                    {
-                        value == 100 &&
-                        <Stack 
-                            direction="row"
-                            spacing={2}
-                            fullWidth
-                        >
-                            <Typography variant="h5" sx={{ color: 'green' }} >
-                                <CheckCircleIcon textColor='green' />
-                            </Typography>
-                            <Typography variant="h7" >
-                                Review your profit of { parseInt(profitSent.amount)/1000000000000000000 } ETH on your wallet account
-                            </Typography>
-                        </Stack>
-                    }
-                    </Stack>
                 </Stack>
             </Box>
         </>
