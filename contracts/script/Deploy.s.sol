@@ -7,13 +7,14 @@ import {ICreateX} from "createx/ICreateX.sol";
 
 import {DeployUtils} from "../libraries/DeployUtils.sol";
 import {TestUSDToken, UniswapDummyContract} from "../src/UniswapDummyContract.sol";
+import {FlashBorrower} from "../src/FlashBorrower.sol";
 import {FlashLoanHandler} from "../src/FlashLoanHandler.sol";
 import {FlashLoanVault} from "../src/FlashLoanVault.sol";
 
 contract Deploy is Script {
     /// @notice Array of RPC URLs to deploy to, deploy to supersim 901 and 902 by default.
-    // string[] private rpcUrls = ["http://localhost:9545", "http://localhost:9546"];
-    string[] private rpcUrls = ["https://interop-alpha-0.optimism.io/", "https://interop-alpha-1.optimism.io/"];
+    string[] private rpcUrls = ["http://localhost:9545", "http://localhost:9546"];
+    //string[] private rpcUrls = ["https://interop-alpha-0.optimism.io/", "https://interop-alpha-1.optimism.io/"];
 
     /// @notice Modifier that wraps a function in broadcasting.
     modifier broadcast() {
@@ -30,8 +31,9 @@ contract Deploy is Script {
             vm.createSelectFork(rpcUrl);
             address testUSDTokenAddress = deployTestUSDToken();
             address uniswapDummyContractAddress = deployUniswapDummyContract(testUSDTokenAddress);
+            address flashBorrowerAddress = deployFlashBorrower(uniswapDummyContractAddress);
             address flashLoanVaultAddress = deployFlashLoanVault();
-            address flashLoanHandlerAddress = deployFlashLoanHandler(uniswapDummyContractAddress, flashLoanVaultAddress);
+            address flashLoanHandlerAddress = deployFlashLoanHandler(flashBorrowerAddress, flashLoanVaultAddress);
         }
     }
 
@@ -50,11 +52,19 @@ contract Deploy is Script {
         addr_ = DeployUtils.deployContract("UniswapDummyContract", _implSalt(), initCode);
     }
 
-    function deployFlashLoanHandler(address uniswapDummyContractAddress, address flashLoanVaultAddress) 
+    function deployFlashBorrower(address uniswapDummyContractAddress) public payable broadcast returns (address addr_){
+        bytes memory initCode = abi.encodePacked(
+            type(FlashBorrower).creationCode,
+            abi.encode(uniswapDummyContractAddress)
+        );
+        addr_ = DeployUtils.deployContract("FlashBorrower", _implSalt(), initCode);
+    }
+
+    function deployFlashLoanHandler(address flashBorrowerAddress, address flashLoanVaultAddress) 
     public broadcast returns (address addr_){
         bytes memory initCode = abi.encodePacked(
             type(FlashLoanHandler).creationCode, 
-            abi.encode(uniswapDummyContractAddress, flashLoanVaultAddress)
+            abi.encode(flashBorrowerAddress, flashLoanVaultAddress)
             );
         addr_ = DeployUtils.deployContract("FlashLoanHandler", _implSalt(), initCode);
     }
