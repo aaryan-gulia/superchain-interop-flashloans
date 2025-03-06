@@ -26,6 +26,7 @@ import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useActiveAccount, useActiveWalletConnectionStatus, useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
 import OpLogo from './assets/op_logo.svg'
+import Switch from '@mui/material/Switch';
 
 const superchainA = import.meta.env.VITE_ENVIRONMENT == 'local' ? defineChain(
   {
@@ -84,6 +85,8 @@ console.log("superchainB: ", superchainB)
 export const FlashLoan = () => {
     
     const contractHandlerAddress = import.meta.env.VITE_ENVIRONMENT == 'local' ? import.meta.env.VITE_CONTRACT_HANDLER_LOCAL : import.meta.env.VITE_CONTRACT_HANDLER_DEVNET;
+
+    const [advancedFeatures, setAdvancedFeatures] = useState(false)
 
     const [startCounting, setStartCounting] = useState(false)
     const [isInProgress, setIsInProgress] = useState(false)
@@ -393,9 +396,28 @@ export const FlashLoan = () => {
                         Powered by <img src={OpLogo} alt="React Logo" width={25} />
                     </Typography>
 
-                    {/* <Box sx={{ width: 500, maxWidth: '100%' }}>
-                      <TextField fullWidth type='number' label="Amount (ETH)" id="fullWidth" />
-                    </Box> */}
+                    <Typography 
+                        color="#000"
+                        textTransform={ 'none' } 
+                        variant="h7"
+                    > 
+                        Advanced features 
+                        <Switch
+                            checked={advancedFeatures}
+                            onChange={() => setAdvancedFeatures(!advancedFeatures)}
+                            name="loading"
+                            color="primary"
+                        />
+                    </Typography>
+
+
+                    {
+                        (advancedFeatures) && 
+                            <Box sx={{ width: 500, maxWidth: '100%' }}>
+                            <TextField fullWidth type='text' label="Arbitrage contract" id="fullWidth" />
+                            </Box>
+                    }
+
 
                     <Stack 
                         direction="row"
