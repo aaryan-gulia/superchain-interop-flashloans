@@ -7,4 +7,6 @@ interface IFlashBorrower {
      * @param flashLoanHandlerAddress the address of the flashLoanHandler contract.
      */
     function onFlashLoan(uint256 amount, address flashLoanHandlerAddress) external payable;
+
+    receive() external payable{}
 }
