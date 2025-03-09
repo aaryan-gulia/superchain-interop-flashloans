@@ -8,5 +8,5 @@ interface IFlashBorrower {
      */
     function onFlashLoan(uint256 amount, address flashLoanHandlerAddress) external payable;
 
-    receive() external payable{}
+    receive() external payable;
 }

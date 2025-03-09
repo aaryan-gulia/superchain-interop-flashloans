@@ -17,7 +17,7 @@ contract FlashLoanHandler {
     event sentProfit(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
     event noProfit();
 
-    address flashBorrowerDefaultAddress;
+    address payable flashBorrowerDefaultAddress;
 
     address payable superchainWEthAddress = payable(0x4200000000000000000000000000000000000024);
     ISuperchainWETH superchainWEth = ISuperchainWETH(superchainWEthAddress);
@@ -30,10 +30,10 @@ contract FlashLoanHandler {
     constructor(address _flashBorrowerAddress, address _flashLoanVaultAddress) {
         flashLoanVaultAddress = payable(_flashLoanVaultAddress);
         flashLoanVault = FlashLoanVault(flashLoanVaultAddress);
-        flashBorrowerDefaultAddress = _flashBorrowerAddress;
+        flashBorrowerDefaultAddress = payable(_flashBorrowerAddress);
     }
 
-    function recieveEthForArbitrageSourceChain(uint256 destinationChain, address caller, uint256 laonAmount, bytes32 flashLoanId, address flashBorrower) 
+    function recieveEthForArbitrageSourceChain(uint256 destinationChain, address caller, uint256 laonAmount, bytes32 flashLoanId, address payable flashBorrower) 
     public payable {
         bytes32 sendEthMsgHash = superchainWEth.sendETH{value: address(this).balance}(address(this), destinationChain);
         
@@ -52,7 +52,7 @@ contract FlashLoanHandler {
         );
     }
 
-    function recieveEthForArbitrageDestinationChain(bytes32 sendEthMsgHash, uint256 sourceChain, address caller, uint256 loanAmount, bytes32 flashLoanId, address flashBorrower) 
+    function recieveEthForArbitrageDestinationChain(bytes32 sendEthMsgHash, uint256 sourceChain, address caller, uint256 loanAmount, bytes32 flashLoanId, address payable flashBorrower) 
     external {
         CrossDomainMessageLib.requireCrossDomainCallback();
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
@@ -100,7 +100,7 @@ contract FlashLoanHandler {
         }
     }
 
-    function initFlashLoan(uint256 destinationChain, address flashBorrower, address caller) public {
+    function initFlashLoan(uint256 destinationChain, address payable flashBorrower, address caller) public {
         require(destinationChain != block.chainid, "Destination Chain Cannot Be Same As Source Chain");
 
         uint256 loanAmountRecieved = flashLoanVault.processMaxLoanRequest();
@@ -115,7 +115,7 @@ contract FlashLoanHandler {
         this.initFlashLoan(destinationChain, flashBorrowerDefaultAddress, msg.sender);
     }
     function callFlashLoanHandlerAdvanced(uint256 destinationChain, address flashBorrowerAddress) public {
-        this.initFlashLoan(destinationChain, flashBorrowerAddress, msg.sender);
+        this.initFlashLoan(destinationChain, payable(flashBorrowerAddress), msg.sender);
     }
 
     receive() external payable{}

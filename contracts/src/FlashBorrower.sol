@@ -34,6 +34,7 @@ contract FlashBorrower is IFlashBorrower{
         uniswapDummyContract.buyEth(payable(address(this)), tokenBalance);
     }
 
+    receive() external payable {}
 }
 
 
