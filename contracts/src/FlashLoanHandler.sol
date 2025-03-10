@@ -59,10 +59,17 @@ contract FlashLoanHandler {
 
         uint256 ethAmount = address(this).balance;
 
-        emit soldEth(flashLoanId, address(this).balance, block.chainid, caller);
+        try IFlashBorrower(flashBorrower).onFlashLoan{value: ethAmount}(ethAmount, address(this)){
+            emit soldEth(flashLoanId, address(this).balance, block.chainid, caller);
+        } catch {
+            // TODO: Handle Paying Back Loan!
+            revert ("onFlashLoan Function Failed");
+        }
 
-        IFlashBorrower(flashBorrower).onFlashLoan{value: ethAmount}(ethAmount, address(this));
-        require(address(this).balance >= ethAmount, "Required ETH not returned");
+        if (address(this).balance < ethAmount){
+            // TODO: Handle Paying Back Loan!
+            revert ("Sufficient Funds Were Not Returned");
+        } 
 
         emit boughtEth(flashLoanId, address(this).balance, block.chainid, caller);
 
@@ -80,6 +87,8 @@ contract FlashLoanHandler {
                 )
             );
     }
+
+
 
     function recieveEthOnSourceChainFromDestinationChain(bytes32 sendEthMsgHash, address caller, uint256 loanAmount, bytes32 flashLoanId) external{
         CrossDomainMessageLib.requireCrossDomainCallback();
