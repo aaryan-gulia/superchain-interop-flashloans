@@ -15,7 +15,7 @@ contract FlashLoanHandler {
     event soldEth(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
     event boughtEth(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
     event sentProfit(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
-    event noProfit();
+    event noProfit(bytes32 indexed flashLoanId, uint256 chainid, address indexed user);
 
     address payable flashBorrowerDefaultAddress;
 
@@ -57,15 +57,29 @@ contract FlashLoanHandler {
         CrossDomainMessageLib.requireCrossDomainCallback();
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
 
+        try this.callOnFlashLoan(flashLoanId, caller, flashBorrower){} catch {
+            //TODO: Define Proper Events For Failiure
+        }
+        tranferToSourceChain(sourceChain, caller, loanAmount, flashLoanId);
+    }
+
+    function callOnFlashLoan(bytes32 flashLoanId, address caller, address payable flashBorrower) external {
         uint256 ethAmount = address(this).balance;
 
-        emit soldEth(flashLoanId, address(this).balance, block.chainid, caller);
+        try IFlashBorrower(flashBorrower).onFlashLoan{value: ethAmount}(ethAmount, address(this)){
+            emit soldEth(flashLoanId, address(this).balance, block.chainid, caller);
+        } catch {
+            revert ("onFlashLoan Function Failed");
+        }
 
-        IFlashBorrower(flashBorrower).onFlashLoan{value: ethAmount}(ethAmount, address(this));
-        require(address(this).balance >= ethAmount, "Required ETH not returned");
+        if (address(this).balance < ethAmount){
+            revert ("Sufficient Funds Were Not Returned");
+        } 
 
         emit boughtEth(flashLoanId, address(this).balance, block.chainid, caller);
+    }
 
+    function tranferToSourceChain(uint256 sourceChain, address caller, uint256 loanAmount, bytes32 flashLoanId) private {
         bytes32 sendEthMsgHashBack = superchainWEth.sendETH{value: address(this).balance}(address(this), sourceChain);
         
         messenger.sendMessage(
@@ -96,7 +110,7 @@ contract FlashLoanHandler {
         else {
             flashLoanVaultAddress.call {value: address(this).balance} ("");
             emit flashLoanRepayed(flashLoanId, loanAmount, block.chainid, caller);
-            emit noProfit();
+            emit noProfit(flashLoanId, block.chainid, caller);
         }
     }
 
