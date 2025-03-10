@@ -57,22 +57,29 @@ contract FlashLoanHandler {
         CrossDomainMessageLib.requireCrossDomainCallback();
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
 
+        try this.callOnFlashLoan(flashLoanId, caller, flashBorrower){} catch {
+            emit noProfit(); //TODO: Define Proper Events For Failiure
+        }
+        tranferToSourceChain(sourceChain, caller, loanAmount, flashLoanId);
+    }
+
+    function callOnFlashLoan(bytes32 flashLoanId, address caller, address payable flashBorrower) external {
         uint256 ethAmount = address(this).balance;
 
         try IFlashBorrower(flashBorrower).onFlashLoan{value: ethAmount}(ethAmount, address(this)){
             emit soldEth(flashLoanId, address(this).balance, block.chainid, caller);
         } catch {
-            // TODO: Handle Paying Back Loan!
             revert ("onFlashLoan Function Failed");
         }
 
         if (address(this).balance < ethAmount){
-            // TODO: Handle Paying Back Loan!
             revert ("Sufficient Funds Were Not Returned");
         } 
 
         emit boughtEth(flashLoanId, address(this).balance, block.chainid, caller);
+    }
 
+    function tranferToSourceChain(uint256 sourceChain, address caller, uint256 loanAmount, bytes32 flashLoanId) private {
         bytes32 sendEthMsgHashBack = superchainWEth.sendETH{value: address(this).balance}(address(this), sourceChain);
         
         messenger.sendMessage(
@@ -87,8 +94,6 @@ contract FlashLoanHandler {
                 )
             );
     }
-
-
 
     function recieveEthOnSourceChainFromDestinationChain(bytes32 sendEthMsgHash, address caller, uint256 loanAmount, bytes32 flashLoanId) external{
         CrossDomainMessageLib.requireCrossDomainCallback();
