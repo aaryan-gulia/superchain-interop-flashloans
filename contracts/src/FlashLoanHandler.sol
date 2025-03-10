@@ -15,7 +15,7 @@ contract FlashLoanHandler {
     event soldEth(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
     event boughtEth(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
     event sentProfit(bytes32 indexed flashLoanId, uint256 ethAmount, uint256 chainid, address indexed user);
-    event noProfit();
+    event noProfit(bytes32 indexed flashLoanId, uint256 chainid, address indexed user);
 
     address payable flashBorrowerDefaultAddress;
 
@@ -58,7 +58,7 @@ contract FlashLoanHandler {
         CrossDomainMessageLib.requireMessageSuccess(sendEthMsgHash);
 
         try this.callOnFlashLoan(flashLoanId, caller, flashBorrower){} catch {
-            emit noProfit(); //TODO: Define Proper Events For Failiure
+            //TODO: Define Proper Events For Failiure
         }
         tranferToSourceChain(sourceChain, caller, loanAmount, flashLoanId);
     }
@@ -110,7 +110,7 @@ contract FlashLoanHandler {
         else {
             flashLoanVaultAddress.call {value: address(this).balance} ("");
             emit flashLoanRepayed(flashLoanId, loanAmount, block.chainid, caller);
-            emit noProfit();
+            emit noProfit(flashLoanId, block.chainid, caller);
         }
     }
 
