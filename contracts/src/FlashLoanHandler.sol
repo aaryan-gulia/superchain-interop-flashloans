@@ -125,10 +125,10 @@ contract FlashLoanHandler {
         this.recieveEthForArbitrageSourceChain(destinationChain, caller, loanAmountRecieved, flashLoanId, flashBorrower);
     }
 
-    function callFlashLoanHandler(uint256 destinationChain) public {
+    function callFlashLoanHandler(uint256 destinationChain, address token) public {
         this.initFlashLoan(destinationChain, flashBorrowerDefaultAddress, msg.sender);
     }
-    function callFlashLoanHandlerAdvanced(uint256 destinationChain, address flashBorrowerAddress) public {
+    function callFlashLoanHandlerAdvanced(uint256 destinationChain, address flashBorrowerAddress, address token) public {
         this.initFlashLoan(destinationChain, payable(flashBorrowerAddress), msg.sender);
     }
 
