@@ -27,3 +27,4 @@ dist-ssr
 contracts/out/*
 contracts/cache/*
 contracts/broadcast/*
+backend/rust/target/*
