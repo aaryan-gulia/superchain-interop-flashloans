@@ -1,0 +1,25 @@
+name: FlashLoan CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Foundry
+        run: |
+          curl -L https://foundry.paradigm.xyz | bash
+          foundryup
+
+      - name: Install cast/wallet
+        run: sudo apt-get install -y jq
+
+      - name: Deploy and Fund
+        run: bash contracts/deploy_and_fund.sh
+
+      - name: Run Tests
+        run: bash contracts/test.sh
