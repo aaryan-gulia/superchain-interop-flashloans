@@ -9,12 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install Foundry
-        run: |
-          curl -L https://foundry.paradigm.xyz | bash
-          source /home/runner/.bashrc
-          foundryup
+      - uses: foundry-rs/foundry-toolchain@main
+      
+      - name: Compile Contracts
+        run: forge build
 
       - name: Install cast/wallet
         run: sudo apt-get install -y jq
