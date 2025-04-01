@@ -12,13 +12,16 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@master
       
       - name: Compile Contracts
-        run: forge build contracts
+        run: forge build
+        working-directory: contracts
 
       - name: Install cast/wallet
         run: sudo apt-get install -y jq
 
       - name: Deploy and Fund
-        run: bash contracts/deploy_and_fund.sh
+        run: bash deploy_and_fund.sh
+        working-directory: contracts
 
       - name: Run Tests
-        run: bash contracts/test.sh
+        run: bash test.sh
+        working-directory: contracts
