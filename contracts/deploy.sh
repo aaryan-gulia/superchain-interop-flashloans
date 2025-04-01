@@ -5,7 +5,8 @@
 
 set -e
 
-PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+PRIVATE_KEY="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+WALLET_ADDRESS=$(cast wallet address --private-key $PRIVATE_KEY)
 DEPLOY_SCRIPT="./script/Deploy.s.sol"
 DEPLOY_LOG="deploy_log.txt"
 
@@ -18,11 +19,12 @@ LOGS=$(cat "$DEPLOY_LOG")
 
 extract_address() {
   local contract="$1"
-  echo "$LOGS" | grep "Deployed $contract at address:" | head -n 1 | sed -E 's/.*address: ([^ ]+).*/\1/'
+  echo "$LOGS" | grep -Ei "$contract (already )?deployed at|Deployed $contract at address" | head -n 1 | sed -E 's/.*at (address: )?([^ ]+) on.*/\2/'
 }
 
 UNISWAPCONTRACT=$(extract_address "UniswapDummyContract")
 VAULTCONTRACT=$(extract_address "FlashLoanVault")
+FLASHLOANHANDLER=$(extract_address "FlashLoanHandler")
 
 export UNISWAPCONTRACT
 export VAULTCONTRACT
@@ -30,6 +32,7 @@ export VAULTCONTRACT
 echo "\n[+] Parsed contract addresses:"
 echo "UNISWAPCONTRACT=$UNISWAPCONTRACT"
 echo "VAULTCONTRACT=$VAULTCONTRACT"
+echo "FLASHLOANHANDLER=$FLASHLOANHANDLER"
 
 # Step 3: Parse RPC URLs and chain IDs
 RPC1=$(echo "$LOGS" | grep "Deploying to RPC" | head -n 1 | sed -E 's/.*RPC: *([^ ]+).*/\1/')
@@ -46,6 +49,18 @@ export CHAINID2
 # Step 4: Fund Uniswap and Vault contract with ETH on both Supersim chains
 
 echo "\n[+] Funding contracts on both chains..."
+
+get_tenth_balance() {
+  local rpc=$1
+  local balance=$(cast balance $WALLET_ADDRESS --rpc-url $rpc | grep -oE '^[0-9]+')
+  echo $((balance / 10))
+}
+
+AMOUNT1=$(get_tenth_balance $RPC1)
+AMOUNT2=$(get_tenth_balance $RPC2)
+
+echo "\n[+] Transferring $AMOUNT1 wei from Chain 1"
+echo "[+] Transferring $AMOUNT2 wei from Chain 2"
 
 # Chain 1 → Chain 2
 cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" \
@@ -70,4 +85,15 @@ cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint2
   --private-key "$PRIVATE_KEY"
 
 echo "\n[+] Deployment and funding complete."
+
+cat <<EOF > deployment_variables.sh
+export FLASHLOANHANDLER=$FLASHLOANHANDLER
+export RPC1=$RPC1
+export CHAINID1=$CHAINID1
+export RPC2=$RPC2
+export CHAINID2=$CHAINID2
+# Add other vars as needed
+EOF
+
+echo "Variables saved to deployment_variables.sh file"
 
