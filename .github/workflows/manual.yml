@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: foundry-rs/foundry-toolchain@main
+      - uses: foundry-rs/foundry-toolchain@master
       
       - name: Compile Contracts
         run: forge build
