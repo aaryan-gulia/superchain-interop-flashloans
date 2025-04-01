@@ -19,7 +19,7 @@ jobs:
         run: sudo apt-get install -y jq
 
       - name: Deploy and Fund
-        run: bash deploy_and_fund.sh
+        run: bash deploy.sh
         working-directory: contracts
 
       - name: Run Tests
