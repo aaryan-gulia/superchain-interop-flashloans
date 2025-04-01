@@ -12,7 +12,7 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@master
       
       - name: Compile Contracts
-        run: forge build
+        run: forge build contracts
 
       - name: Install cast/wallet
         run: sudo apt-get install -y jq
