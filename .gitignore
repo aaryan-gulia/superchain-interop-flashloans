@@ -28,3 +28,6 @@ contracts/out/*
 contracts/cache/*
 contracts/broadcast/*
 backend/rust/target/*
+
+./contracts/deployment_variables.sh
+./contracts/deploy_log.txt
