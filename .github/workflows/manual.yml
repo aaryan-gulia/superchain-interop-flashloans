@@ -1,0 +1,28 @@
+name: FlashLoan CI
+
+on: 
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: foundry-rs/foundry-toolchain@master
+      
+      - name: Compile Contracts
+        run: forge build
+        working-directory: contracts
+
+      - name: Install cast/wallet
+        run: sudo apt-get install -y jq
+
+      - name: Deploy and Fund
+        run: bash deploy.sh
+        working-directory: contracts
+
+      - name: Run Tests
+        run: bash test.sh
+        working-directory: contracts
