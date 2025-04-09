@@ -7,7 +7,11 @@ on:
 
 jobs:
   test:
+    environment: devnet
+    env:
+      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
     runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v3
       - uses: foundry-rs/foundry-toolchain@master
