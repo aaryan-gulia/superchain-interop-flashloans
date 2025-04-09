@@ -1,25 +1,24 @@
 #!/bin/bash
 
-# === deploy_and_fund.sh ===
-# USAGE: bash deploy_and_fund.sh
+# === deploy.sh ===
+# USAGE: bash deploy.sh
 
 set -e
 
-PRIVATE_KEY="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
-WALLET_ADDRESS=$(cast wallet address --private-key $PRIVATE_KEY)
+WALLET_ADDRESS=$(cast wallet address --private-key "$PRIVATE_KEY")
 DEPLOY_SCRIPT="./script/Deploy.s.sol"
 DEPLOY_LOG="deploy_log.txt"
 
 # Step 1: Deploy contracts on Supersim chains (local forks)
 echo "\n[+] Deploying contracts to Supersim chains..."
-forge script "$DEPLOY_SCRIPT" --slow --multi --broadcast --private-key "$PRIVATE_KEY" -vvv > "$DEPLOY_LOG"
+forge script "$DEPLOY_SCRIPT" --slow --multi --broadcast --private-key "$PRIVATE_KEY" -vvv >"$DEPLOY_LOG"
 
 # Step 2: Parse contract addresses (same across both chains)
 LOGS=$(cat "$DEPLOY_LOG")
 
 extract_address() {
-  local contract="$1"
-  echo "$LOGS" | grep -Ei "$contract (already )?deployed at|Deployed $contract at address" | head -n 1 | sed -E 's/.*at (address: )?([^ ]+) on.*/\2/'
+    local contract="$1"
+    echo "$LOGS" | grep -Ei "$contract (already )?deployed at|Deployed $contract at address" | head -n 1 | sed -E 's/.*at (address: )?([^ ]+) on.*/\2/'
 }
 
 UNISWAPCONTRACT=$(extract_address "UniswapDummyContract")
@@ -51,9 +50,9 @@ export CHAINID2
 echo "\n[+] Funding contracts on both chains..."
 
 get_tenth_balance() {
-  local rpc=$1
-  local balance=$(cast balance $WALLET_ADDRESS --rpc-url $rpc | grep -oE '^[0-9]+')
-  echo $((balance / 10))
+    local rpc="$1"
+    local balance=$(cast balance $WALLET_ADDRESS --rpc-url $rpc | grep -oE '^[0-9]+')
+    echo $((balance / 100))
 }
 
 AMOUNT1=$(get_tenth_balance $RPC1)
@@ -64,29 +63,29 @@ echo "[+] Transferring $AMOUNT2 wei from Chain 2"
 
 # Chain 1 → Chain 2
 cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" \
-  $UNISWAPCONTRACT $CHAINID2 --value 0.01ether \
-  --rpc-url $RPC1 \
-  --private-key "$PRIVATE_KEY"
+    $UNISWAPCONTRACT $CHAINID2 --value $AMOUNT1 \
+    --rpc-url $RPC1 \
+    --private-key "$PRIVATE_KEY"
 
 cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" \
-  $VAULTCONTRACT $CHAINID1 --value 0.01ether \
-  --rpc-url $RPC2 \
-  --private-key "$PRIVATE_KEY"
+    $VAULTCONTRACT $CHAINID1 --value $AMOUNT1 \
+    --rpc-url $RPC2 \
+    --private-key "$PRIVATE_KEY"
 
 # Chain 2 → Chain 1
 cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" \
-  $UNISWAPCONTRACT $CHAINID1 --value 0.01ether \
-  --rpc-url $RPC2 \
-  --private-key "$PRIVATE_KEY"
+    $UNISWAPCONTRACT $CHAINID1 --value $AMOUNT2 \
+    --rpc-url $RPC2 \
+    --private-key "$PRIVATE_KEY"
 
 cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" \
-  $VAULTCONTRACT $CHAINID2 --value 0.01ether \
-  --rpc-url $RPC1 \
-  --private-key "$PRIVATE_KEY"
+    $VAULTCONTRACT $CHAINID2 --value $AMOUNT2 \
+    --rpc-url $RPC1 \
+    --private-key "$PRIVATE_KEY"
 
 echo "\n[+] Deployment and funding complete."
 
-cat <<EOF > deployment_variables.sh
+cat <<EOF >deployment_variables.sh
 export FLASHLOANHANDLER=$FLASHLOANHANDLER
 export RPC1=$RPC1
 export CHAINID1=$CHAINID1
@@ -96,4 +95,3 @@ export CHAINID2=$CHAINID2
 EOF
 
 echo "Variables saved to deployment_variables.sh file"
-
