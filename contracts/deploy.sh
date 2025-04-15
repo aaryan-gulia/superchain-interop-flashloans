@@ -5,8 +5,7 @@
 
 set -e
 
-PRIVATE_KEY="0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
-WALLET_ADDRESS=$(cast wallet address --private-key $PRIVATE_KEY)
+WALLET_ADDRESS=$(cast wallet address --private-key "$PRIVATE_KEY")
 DEPLOY_SCRIPT="./script/Deploy.s.sol"
 DEPLOY_LOG="deploy_log.txt"
 
@@ -51,7 +50,7 @@ export CHAINID2
 echo "\n[+] Funding contracts on both chains..."
 
 get_tenth_balance() {
-    local rpc=$1
+    local rpc="$1"
     local balance=$(cast balance $WALLET_ADDRESS --rpc-url $rpc | grep -oE '^[0-9]+')
     echo $((balance / 100))
 }
