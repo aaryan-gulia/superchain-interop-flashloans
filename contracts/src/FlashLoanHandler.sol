@@ -236,7 +236,7 @@ contract FlashLoanHandler {
         );
     }
 
-    function callFlashLoanHandler(uint256 destinationChain) public {
+    function callFlashLoanHandlerSimple(uint256 destinationChain) public {
         this.initFlashLoan(
             destinationChain,
             flashBorrowerDefaultAddress,
