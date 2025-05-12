@@ -236,6 +236,14 @@ contract FlashLoanHandler {
         );
     }
 
+    function callFlashLoanHandler(uint256 destinationChain) public {
+        this.initFlashLoan(
+            destinationChain,
+            flashBorrowerDefaultAddress,
+            msg.sender
+        );
+    }
+
     function callFlashLoanHandler(
         Identifier calldata msgId,
         bytes calldata msgData,
